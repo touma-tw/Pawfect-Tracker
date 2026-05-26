@@ -1,3 +1,6 @@
 [submodule "openvr"]
 	path = openvr
 	url = https://github.com/ValveSoftware/openvr.git
+[submodule "third-party/boost_1_80_0"]
+	path = third-party/boost_1_80_0
+	url = https://github.com/boostorg/boost.git

@@ -49,6 +49,8 @@ namespace vrinputemulator {
 		vr::HmdVector3d_t driverFromHeadTranslationOffset;
 		vr::HmdQuaternion_t deviceRotationOffset;
 		vr::HmdVector3d_t deviceTranslationOffset;
+		bool hmdRelativeOffsetEnabled;
+		vr::HmdVector3d_t hmdRelativeTranslationOffset;
 	};
 
 

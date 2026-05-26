@@ -1,12 +1,70 @@
-.vs/*
+# Visual Studio
+*.suo
+*.user
+*.userprefs
+*.sln.docstates
+*.userosscache
+.vs/
+ipch/
+
+# Build output
 */build/*
 */Release/*
 */Debug/*
 Debug/*
 Release/*
 build/*
+out/
 */x64/*
+*/x86/
 */bin/*
+[Ww][Ii][Nn]32/
+[Oo]bj/
+
 /third-party/boost_1_63_0/*
 *.tlog
 driver_vrinputemulator/bin/*
+
+# Build artifacts
+*.obj
+*.pdb
+*.idb
+*.ilk
+*.exp
+*.lib
+*.log
+*.tlog
+*.ipdb
+*.iobj
+*.dep
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.opendb
+
+# Qt
+*.pro.user
+*.pro.user.*
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+*.qmlc
+*.jsc
+Makefile*
+ 
+# OS-level
+Thumbs.db
+desktop.ini
+.DS_Store
+ 
+# Editor swaps
+*.swp
+*.swo
+*~
+.vscode/
+ 
+# Local config that should not be in repo
+*.local
+local.properties

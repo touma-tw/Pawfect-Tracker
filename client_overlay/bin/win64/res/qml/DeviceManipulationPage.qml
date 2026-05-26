@@ -13,7 +13,7 @@ MyStackViewPage {
     id: devicePage
     width: 1200
     height: 800
-    headerText: "Input Emulator"
+    headerText: "にくきゅっと! ~ Pawfect Tracker ~"
     headerShowBackButton: false
 
     property int deviceIndex: 0
@@ -29,78 +29,48 @@ MyStackViewPage {
 
 
     MyDialogOkCancelPopup {
-        id: deviceManipulationDeleteProfileDialog
-        property int profileIndex: -1
-        dialogTitle: "Delete Profile"
-        dialogText: "Do you really want to delete this profile?"
+        id: offsetPresetDeleteDialog
+        property int presetIndex: -1
+        dialogTitle: "Delete Offset Preset"
+        dialogText: "Do you really want to delete this offset preset?"
         onClosed: {
             if (okClicked) {
-                DeviceManipulationTabController.deleteDeviceManipulationProfile(profileIndex)
+                DeviceManipulationTabController.deleteOffsetPreset(presetIndex)
             }
         }
     }
 
     MyDialogOkCancelPopup {
-        id: deviceManipulationNewProfileDialog
-        dialogTitle: "Create New Profile"
+        id: offsetPresetSaveDialog
+        dialogTitle: "Save Offset Preset"
         dialogWidth: 600
-        dialogHeight: 400
+        dialogHeight: 300
         dialogContentItem: ColumnLayout {
             RowLayout {
                 Layout.topMargin: 16
                 Layout.leftMargin: 16
                 Layout.rightMargin: 16
-                MyText {
-                    text: "Name: "
-                }
+                MyText { text: "Name: " }
                 MyTextField {
-                    id: deviceManipulationNewProfileName
+                    id: offsetPresetNameField
                     color: "#cccccc"
                     text: ""
                     Layout.fillWidth: true
                     font.pointSize: 20
-                    function onInputEvent(input) {
-                        text = input
-                    }
-                }
-            }
-            ColumnLayout {
-                Layout.topMargin: 16
-                Layout.leftMargin: 16
-                Layout.rightMargin: 16
-                MyToggleButton {
-                    id: includeDeviceOffsetsToggle
-                    text: "Include Device Offsets"
-                }
-                MyToggleButton {
-                    id: includeInputRemapping
-                    text: "Include Input Remapping"
+                    function onInputEvent(input) { text = input }
                 }
             }
         }
         onClosed: {
             if (okClicked) {
-                if (deviceManipulationNewProfileName.text == "") {
-                    deviceManipulationMessageDialog.showMessage("Create New Profile", "ERROR: Empty profile name.")
-                } else if (!includeDeviceOffsetsToggle.checked && !includeInputRemapping.checked) {
-                    deviceManipulationMessageDialog.showMessage("Create New Profile", "ERROR: Nothing to include selected.")
+                if (offsetPresetNameField.text === "") {
+                    deviceManipulationMessageDialog.showMessage("Save Offset Preset", "ERROR: Empty preset name.")
                 } else {
-                    DeviceManipulationTabController.addDeviceManipulationProfile(deviceManipulationNewProfileName.text, deviceIndex,
-                        includeDeviceOffsetsToggle.checked, includeInputRemapping.checked)
+                    DeviceManipulationTabController.saveOffsetPreset(offsetPresetNameField.text)
                 }
-
             }
         }
-        function openPopup(device) {
-            deviceManipulationNewProfileName.text = ""
-            includeDeviceOffsetsToggle.checked = false
-            includeInputRemapping.checked = false
-            deviceIndex = device
-            open()
-        }
     }
-
-
 
     content: ColumnLayout {
         spacing: 18
@@ -316,72 +286,98 @@ MyStackViewPage {
         ColumnLayout {
             Layout.bottomMargin: 6
             spacing: 18
+
+            RowLayout {
+                spacing: 18
+
+                MyToggleButton {
+                    id: pauseOffsetsToggle
+                    text: "Pause Offsets"
+                    checked: false
+                    onCheckedChanged: {
+                        DeviceManipulationTabController.setOffsetsPaused(checked)
+                    }
+                }
+
+                MyPushButton {
+                    id: offsetsQuickMenuButton
+                    activationSoundEnabled: false
+                    Layout.preferredWidth: 260
+                    text: "Offsets QuickMenu"
+                    onClicked: {
+                        offsetQuickMenuPage.refresh()
+                        MyResources.playFocusChangedSound()
+                        mainView.push(offsetQuickMenuPage)
+                    }
+                }
+            }
+
             RowLayout {
                 spacing: 18
 
                 MyText {
-                    text: "Profile:"
+                    text: "Offset Preset:"
                 }
 
                 MyComboBox {
-                    id: deviceManipulationProfileComboBox
-                    Layout.maximumWidth: 799
-                    Layout.minimumWidth: 799
-                    Layout.preferredWidth: 799
+                    id: offsetPresetComboBox
                     Layout.fillWidth: true
                     model: [""]
                     onCurrentIndexChanged: {
-                        if (currentIndex > 0) {
-                            deviceManipulationApplyProfileButton.enabled = true
-                            deviceManipulationDeleteProfileButton.enabled = true
-                        } else {
-                            deviceManipulationApplyProfileButton.enabled = false
-                            deviceManipulationDeleteProfileButton.enabled = false
-                        }
+                        var hasSelection = currentIndex > 0
+                        offsetPresetApplyButton.enabled = hasSelection
+                        offsetPresetDeleteButton.enabled = hasSelection
                     }
                 }
 
                 MyPushButton {
-                    id: deviceManipulationApplyProfileButton
+                    id: offsetPresetApplyButton
                     enabled: false
                     Layout.preferredWidth: 200
                     text: "Apply"
                     onClicked: {
-                        if (deviceManipulationProfileComboBox.currentIndex > 0 && deviceSelectionComboBox.currentIndex >= 0) {
-                            DeviceManipulationTabController.applyDeviceManipulationProfile(deviceManipulationProfileComboBox.currentIndex - 1, deviceSelectionComboBox.currentIndex);
-                            deviceManipulationProfileComboBox.currentIndex = 0
+                        if (offsetPresetComboBox.currentIndex > 0) {
+                            DeviceManipulationTabController.applyOffsetPreset(offsetPresetComboBox.currentIndex - 1)
                         }
                     }
                 }
             }
+
             RowLayout {
                 spacing: 18
-                Item {
-                    Layout.fillWidth: true
-                }
+                Item { Layout.fillWidth: true }
+
                 MyPushButton {
-                    id: deviceManipulationDeleteProfileButton
+                    id: offsetPresetDeleteButton
                     enabled: false
                     Layout.preferredWidth: 200
-                    text: "Delete Profile"
+                    text: "Delete Preset"
                     onClicked: {
-                        if (deviceManipulationProfileComboBox.currentIndex > 0) {
-                            deviceManipulationDeleteProfileDialog.profileIndex = deviceManipulationProfileComboBox.currentIndex - 1
-                            deviceManipulationDeleteProfileDialog.open()
+                        if (offsetPresetComboBox.currentIndex > 0) {
+                            offsetPresetDeleteDialog.presetIndex = offsetPresetComboBox.currentIndex - 1
+                            offsetPresetDeleteDialog.open()
                         }
                     }
                 }
+
                 MyPushButton {
-                    id: deviceManipulationNewProfileButton
+                    id: offsetPresetSaveButton
                     Layout.preferredWidth: 200
-                    text: "New Profile"
+                    text: "Save Current"
                     onClicked: {
-                        if (deviceSelectionComboBox.currentIndex >= 0) {
-                            deviceManipulationNewProfileDialog.openPopup(deviceSelectionComboBox.currentIndex)
+                        if (offsetPresetComboBox.currentIndex > 0) {
+                            // Overwrite the selected preset directly
+                            var name = DeviceManipulationTabController.getOffsetPresetName(offsetPresetComboBox.currentIndex - 1)
+                            DeviceManipulationTabController.saveOffsetPreset(name)
+                        } else {
+                            // No preset selected — ask for a name
+                            offsetPresetNameField.text = ""
+                            offsetPresetSaveDialog.open()
                         }
                     }
                 }
             }
+
         }
 
         RowLayout {
@@ -398,7 +394,7 @@ MyStackViewPage {
 
         Component.onCompleted: {
             appVersionText.text = OverlayController.getVersionString()
-            reloadDeviceManipulationProfiles()
+            reloadOffsetPresets()
         }
 
         Connections {
@@ -412,8 +408,8 @@ MyStackViewPage {
                     fetchDeviceInfo()
                 }
             }
-            onDeviceManipulationProfilesChanged: {
-                reloadDeviceManipulationProfiles()
+            onOffsetPresetsChanged: {
+                reloadOffsetPresets()
             }
         }
 
@@ -425,9 +421,15 @@ MyStackViewPage {
         var deviceCount = DeviceManipulationTabController.getDeviceCount()
         for (var i = 0; i < deviceCount; i++) {
             var deviceId = DeviceManipulationTabController.getDeviceId(i)
-            var deviceName = deviceId.toString() + ": "
-            deviceName += DeviceManipulationTabController.getDeviceSerial(i)
+            var serial = DeviceManipulationTabController.getDeviceSerial(i)
+            var role = DeviceManipulationTabController.getDeviceRole(i)
             var deviceClass = DeviceManipulationTabController.getDeviceClass(i)
+            var deviceName
+            if (role !== "") {
+                deviceName = role + " (" + serial + ")"
+            } else {
+                deviceName = deviceId.toString() + ": " + serial
+            }
             if (deviceClass == 1) {
                 deviceName += " (HMD)"
             } else if (deviceClass == 2) {
@@ -451,8 +453,6 @@ MyStackViewPage {
             deviceInputRemappingButton.enabled = false
             deviceRenderModelButton.enabled = false
             deviceIdentifyButton.enabled = false
-            deviceManipulationNewProfileButton.enabled = false
-            deviceManipulationProfileComboBox.enabled = false
         } else {
             deviceModeSelectionComboBox.enabled = true
             deviceManipulationOffsetButton.enabled = true
@@ -461,8 +461,6 @@ MyStackViewPage {
             motionCompensationButton.enabled = true
             deviceModeApplyButton.enabled = true
             deviceIdentifyButton.enabled = true
-            deviceManipulationNewProfileButton.enabled = true
-            deviceManipulationProfileComboBox.enabled = true
             if (oldIndex >= 0 && oldIndex < deviceCount) {
                 deviceSelectionComboBox.currentIndex = oldIndex
             } else {
@@ -562,14 +560,23 @@ MyStackViewPage {
         }
     }
 
-    function reloadDeviceManipulationProfiles() {
-        var profiles = [""]
-        var profileCount = DeviceManipulationTabController.getDeviceManipulationProfileCount()
-        for (var i = 0; i < profileCount; i++) {
-            profiles.push(DeviceManipulationTabController.getDeviceManipulationProfileName(i))
+    function reloadOffsetPresets() {
+        var presets = [""]
+        var count = DeviceManipulationTabController.getOffsetPresetCount()
+        for (var i = 0; i < count; i++) {
+            presets.push(DeviceManipulationTabController.getOffsetPresetName(i))
         }
-        deviceManipulationProfileComboBox.model = profiles
-        deviceManipulationProfileComboBox.currentIndex = 0
+        offsetPresetComboBox.model = presets
+        // Restore last-used selection
+        var lastName = DeviceManipulationTabController.getLastOffsetPresetName()
+        var found = 0
+        for (var j = 1; j < presets.length; j++) {
+            if (presets[j] === lastName) {
+                found = j
+                break
+            }
+        }
+        offsetPresetComboBox.currentIndex = found
     }
 
 }

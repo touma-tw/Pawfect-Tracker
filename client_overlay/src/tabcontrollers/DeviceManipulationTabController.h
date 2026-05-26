@@ -30,6 +30,17 @@ struct AnalogInputRemappingProfile {
 	AnalogInputRemappingProfile() : remapping(true) {}
 };
 
+struct OffsetPresetEntry {
+	std::string serial;
+	bool enabled = false;
+	double x = 0.0, y = 0.0, z = 0.0;
+};
+
+struct OffsetPreset {
+	std::string name;
+	std::vector<OffsetPresetEntry> entries;
+};
+
 struct DeviceManipulationProfile {
 	std::string profileName;
 
@@ -49,6 +60,7 @@ struct DeviceManipulationProfile {
 
 struct DeviceInfo {
 	std::string serial;
+	std::string trackerRole; // e.g. "Waist", "Left Foot"; empty if none
 	vr::ETrackedDeviceClass deviceClass = vr::TrackedDeviceClass_Invalid;
 	uint32_t openvrId = 0;
 	int deviceStatus = 0; // 0 .. Normal, 1 .. Disconnected/Suspended
@@ -78,6 +90,10 @@ private:
 	uint32_t maxValidDeviceId = 0;
 
 	std::vector<DeviceManipulationProfile> deviceManipulationProfiles;
+	std::vector<OffsetPreset> m_offsetPresets;
+	std::string m_lastOffsetPresetName;
+	bool m_offsetsPaused = false;
+	std::vector<std::string> m_pausedDeviceSerials;
 
 	vrinputemulator::MotionCompensationVelAccMode motionCompensationVelAccMode = vrinputemulator::MotionCompensationVelAccMode::Disabled;
 	double motionCompensationKalmanProcessNoise = 0.1;
@@ -90,6 +106,9 @@ private:
 
 	std::thread identifyThread;
 
+	void reloadOffsetPresets();
+	void saveOffsetPresets();
+
 public:
 	~DeviceManipulationTabController();
 	void initStage1();
@@ -100,12 +119,14 @@ public:
 
 	Q_INVOKABLE unsigned getDeviceCount();
 	Q_INVOKABLE QString getDeviceSerial(unsigned index);
+	Q_INVOKABLE QString getDeviceRole(unsigned index);
 	Q_INVOKABLE unsigned getDeviceId(unsigned index);
 	Q_INVOKABLE int getDeviceClass(unsigned index);
 	Q_INVOKABLE int getDeviceState(unsigned index);
 	Q_INVOKABLE int getDeviceMode(unsigned index);
 	Q_INVOKABLE int getDeviceModeRefDeviceIndex(unsigned index);
 	Q_INVOKABLE bool deviceOffsetsEnabled(unsigned index);
+	Q_INVOKABLE int getDeviceHandedness(unsigned index); // 0=none, 1=left, 2=right
 	Q_INVOKABLE double getWorldFromDriverRotationOffset(unsigned index, unsigned axis);
 	Q_INVOKABLE double getWorldFromDriverTranslationOffset(unsigned index, unsigned axis);
 	Q_INVOKABLE double getDriverFromHeadRotationOffset(unsigned index, unsigned axis);
@@ -121,6 +142,15 @@ public:
 	void reloadDeviceManipulationProfiles();
 	void saveDeviceManipulationSettings();
 	void saveDeviceManipulationProfiles();
+
+	Q_INVOKABLE unsigned getOffsetPresetCount();
+	Q_INVOKABLE QString getOffsetPresetName(unsigned index);
+	Q_INVOKABLE QString getLastOffsetPresetName();
+	Q_INVOKABLE void saveOffsetPreset(QString name);
+	Q_INVOKABLE void applyOffsetPreset(unsigned index);
+	Q_INVOKABLE void deleteOffsetPreset(unsigned index);
+	Q_INVOKABLE bool getOffsetsPaused();
+	Q_INVOKABLE void setOffsetsPaused(bool paused);
 
 	Q_INVOKABLE unsigned getDeviceManipulationProfileCount();
 	Q_INVOKABLE QString getDeviceManipulationProfileName(unsigned index);
@@ -175,6 +205,7 @@ signals:
 	void deviceInfoChanged(unsigned index);
 	void motionCompensationSettingsChanged();
 	void deviceManipulationProfilesChanged();
+	void offsetPresetsChanged();
 	void motionCompensationVelAccModeChanged(unsigned mode);
 	void motionCompensationKalmanProcessNoiseChanged(double variance);
 	void motionCompensationKalmanObservationNoiseChanged(double variance);

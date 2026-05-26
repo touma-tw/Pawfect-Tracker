@@ -1,378 +1,210 @@
-![language](https://img.shields.io/badge/Language-C%2B%2B11-green.svg) ![dependencies](https://img.shields.io/badge/Dependencies-Boost%201.63-green.svg) ![license_gpl3](https://img.shields.io/badge/License-GPL%203.0-green.svg)
+<div align="center">
 
-### This is a fork of OpenVRInputEmulator that is compatible with the latest SteamVR versions (hopefully). Fixes aren't mine, I took code from other people, including p1mp184, and merged it all into one repo.
+<img src="docs/banner.svg" alt="にくきゅっと! ~ Pawfect Tracker ~" width="680">
 
-# OpenVR-InputEmulator
+# にくきゅっと! ~ Pawfect Tracker ~
 
-An OpenVR driver that allows to create virtual controllers, emulate controller input, enable motion compensation, manipulate poses of existing controllers and remap buttons. Includes a dashboard to configure some settings directly in VR, a command line client for more advanced settings, and a client-side library to support development of third-party applications.
+**SteamVR / VRChat フルボディトラッキング (FBT) 調整ツール**
+**SteamVR / VRChat full-body tracking calibration tool**
 
-![Example Screenshot](docs/screenshots/InVRScreenshot.png)
+[**📦 Download on Booth**](https://touma-vrc.booth.pm/) · [**💻 GitHub**](https://github.com/touma-tw)
 
-The OpenVR driver hooks into the HTC Vive lighthouse driver and allows to modify any pose updates or button/axis events coming from the Vive controllers before they reach the OpenVR runtime. Due to the nature of this hack the driver may break when Valve decides to update the driver-side OpenVR API.
+[English](#english) · [日本語](#日本語)
 
-The motivation of this driver is that I want to make myself a tracked gun that is guaranteed to work in any SteamVR game regardless of whether the original dev wants to support tracked guns or not. To accomplish this I need some way to add translation and rotation offsets to the poses of the motion controllers so that I can line up my tracked gun and the gun in the game. Additionally I need a way to easily switch between the tracking puck on my gun and my motion controller with the game thinking it's still the same controller (Throwing grenades with a tracked gun is not fun). But this driver should also support other use cases.
+</div>
 
-There is also a client-side API which other programs can use to communicate with the driver. This API should be powerful enough to also support the development of full-fledged motion-controller drivers.
+---
 
-# Features
+<a name="english"></a>
 
-- Add translation and rotation offsets to the pose of existing controllers.
-- Redirect the pose from one controller to another.
-- Swap controllers.
-- Motion compensation for 6-dof motion platforms.
-- Create virtual controllers and control their positions and rotations.
-- Emulate controller input.
-- Remap controller buttons.
-- ...
+## English
 
-# Notes:
+### What this is
 
-This is a work-in-progress and may contain bugs.
+A fork of OpenVR-InputEmulator with a new **HMD-relative tracker offset** system designed for VRChat full-body tracking calibration.
 
-# Usage
+In the original tool, tracker offsets are specified in raw X / Y / Z driver-space axes. That works fine for developers, but for a player who just wants to move a foot tracker "10cm forward," it requires trial-and-error because X, Y, Z don't correspond to "forward" or "right" from the player's point of view.
 
-## Installer
+This fork repurposes the existing third offset family (now called "DriverFromHMD Translation Offsets") so that:
 
-Download the newest installer from the [release section](https://github.com/matzman666/OpenVR-InputEmulator/releases) and then execute it. Don't forget to exit SteamVR before installing/de-installing.
+- **左右 (Left/Right)** — based on which way the HMD is facing horizontally at the moment you set the value.
+- **上下 (Up/Down)** — independent of whether you are looking up or down. Always world up.
+- **前後 (Forward/Back)** — based on where the HMD is facing horizontally.
+- The offset is **frozen into the tracker at the moment you enter it**, so after setting it, the offset behaves like a rigid attachment to the tracker. HMD turning does NOT make the tracker swing around; only the tracker itself moving or rotating affects the offset's world position.
 
-## Command-Line Client
+### Features added on top of the parent fork
 
-Download the newest command-line client from the [release section](https://github.com/matzman666/OpenVR-InputEmulator/releases), unzip it, and then execute the contained binary in a cmd window. Enter _'client_commandline.exe help'_ on the command line for usage instructions.
+- **HMD-relative offsets** — what you see above. Set in `Device Offsets > DriverFromHMD Translation Offsets`.
+- **Offsets Quick Menu** — single screen showing all trackers with editable 左右 / 上下 / 前後 offsets. No more clicking into each tracker one at a time.
+- **Device role labels** — trackers show their role name (`Waist (Hips)`, `Left Foot`, `Right Knee`, etc.) instead of bare serial numbers like `LHR-2B7395DD`.
+- **One-click save / load** — save the offsets of all currently-connected trackers as a named preset, and load them back later. Useful for switching between avatars or play styles (sitting / dancing / VRChat full-body events).
+- **Pause Offsets** — temporarily disable all offsets in one click. Useful when doing a T-Pose calibration in VRChat and then re-enabling offsets afterward.
 
-# Documentation
+### Requirements
 
-## Fallout 4 VR specific Fixes
+- Windows 10 / 11 (64-bit)
+- SteamVR
+- A SteamVR-compatible HMD (tested with Meta Quest 3 streamed via PC Link)
+- Vive Trackers (1.0 / 2.0 / 3.0) on lighthouse base stations
+- If your HMD is not on lighthouse, install [OpenVR-SpaceCalibrator](https://github.com/pushrax/OpenVR-SpaceCalibrator) to align your HMD and tracker coordinate spaces.
 
-There is an Oculus Touch specific fix available for Fallout 4 VR. It allows to emulate trackpad behaviour with the Rift's joysticks. Therefore, on the [input remapping pages](https://github.com/matzman666/OpenVR-InputEmulator#analog-input-settings) of each analog axis a touchpad emulation mode can be configured.
+### Installation
 
-Currently there are two modes available:
+1. **Quit SteamVR completely** (including the SteamVR Status icon in your system tray — right-click → Quit SteamVR).
+2. Download the latest installer from [Booth](https://touma-vrc.booth.pm/) or [GitHub Releases](../../releases).
+3. Run the installer as administrator. Follow the wizard.
+4. The installer registers the OpenVR driver and SteamVR overlay automatically. No manual steps needed.
+5. Start SteamVR. The overlay icon appears in the SteamVR dashboard.
 
-- **Position Based**: This modes assumes that the joystick can only move further away from the center position. All newer positions smaller can the last known position are ignored. The saved highest position is reset when the center position has been reached. The idea is to ignore input events caused by the joystick snapping back to center position. As soon as the center position is reached it is immediately send to the application in a position update. This helps with movement controls as otherwise any movement in an application is not reset when the joystick is let go by the user, and FO4 menus ignore this position update. However, the pipboy map does not ignore this position update.
+### Quick usage
 
-- **Position Based (Deferred Zero Update)**: This modes works exactly the same as the mode above with one small difference. The position update when the center position is reached is not immediately send but only when the joystick starts moving again. This helps with the pipboy-map but messes up movement controls. To still be able to move you can configure a toggle button to turn on/off touchpad emulation mode (see below).
+1. Open the overlay from the SteamVR dashboard.
+2. Pick a tracker from the **Device** dropdown (now shows role names like "Left Foot" instead of serial numbers).
+3. Click **Device Offsets**, then check **Enable Offsets** at the top.
+4. In the **DriverFromHMD Translation Offsets** section, enter a value for 左右 / 上下 / 前後. The values are interpreted relative to where your HMD is facing right now.
+5. Once it looks right, go back and click **Save Current** in the **Offset Preset** section to save the configuration of all currently-connected trackers under a chosen name.
+6. To apply that preset later, choose it from the dropdown and click **Apply**.
 
-To enable/disable the touchpad emulation mode at will you can configure a toggle binding on any digital button. Therefore, select a digital button, select [either normal, double or long press](https://github.com/matzman666/OpenVR-InputEmulator#digital-input-settings), and then select ["Toggle Touchpad Emulation" as binding type](https://github.com/matzman666/OpenVR-InputEmulator#digital-binding). Now with audio cue.
+For mass-adjusting multiple trackers, click **Offsets QuickMenu** to see all trackers at once.
 
-FO4 also tends to ignore joystick clicks when the joystick is exactly at center position. To help with this you can also activate the deadzone fix for button presses on the [analog input remapping page](https://github.com/matzman666/OpenVR-InputEmulator#analog-input-settings)).
+### Tips
 
-## Top Page:
+- Always run a T-Pose calibration in VRChat **first**, then enable offsets. If your offsets are already on when you T-Pose, the offset values themselves become part of the calibration.
+- When the calibration is off and you want to redo a T-Pose, click **Pause Offsets** so all offsets are temporarily disabled, T-Pose normally, then uncheck Pause Offsets.
+- If you re-run Space Calibrator after setting offsets, you must re-apply the preset. The old frozen offset values were computed against the previous space calibration and are now slightly off.
+- Numerical input units are **centimeters**. So `2.0` = 2cm.
 
-![Root Page](docs/screenshots/DeviceManipulationPage.png)
+### Screenshots
 
-- **Identify**: Sends a haptic pulse to the selected device (Devices without haptic feedback like the Vive trackers can be identified by a flashing white light).
-- **Status**: Shows the current status of the selected device.
-- **Device Mode**: Allows to select a device mode.
-  - **Default**: Default mode.
-  - **Disable**: Let OpenVR think that the device has been disconnected.
-  - **Redirect to**: Impersonate another device.
-  - **Swap with**: Swap two devices.
-  - **Motion Compensation**: Enable motion compensation with the selected device as reference device.
-- **Device Offsets**: Allows to add translation or rotation offsets to the selected device.
-- **Motion Compensation Settings**: Allows to configure motion compensation mode.
-- **Render Model**: Shows a render model at the device position (experimental).
-- **Input Remapping**: Allows to re-map input coming from controller buttons, joysticks or touchpads.
-- **Profile**: Allows to apply/define/delete device offsets/motion compensation profiles.
+<div align="center">
 
-### Redirect Mode
+<img src="docs/screenshots/main_ui.png" alt="Main UI" width="640">
 
-Redirect mode allows to redirect the pose updates and controller events from one controller to another. To enable it select the device from with the pose updates/controller events should be redirected, then set the device mode to "Redirect to" and select the device that should be the redirect target from the combo box on the right, and at last press 'Apply'.
+*Main interface with Pause Offsets, Quick Menu, and Save/Load preset controls*
 
-Redirect mode can be temporarily suspended by re-mapping a controller button to a "suspend" action on the input remapping page.
+<img src="docs/screenshots/device_list.png" alt="Device list with role labels" width="640">
 
-## Device Offsets Page:
+*Device dropdown showing role-based labels (Waist, Foot, Knee, etc.) instead of bare serials*
 
-![Device Offsets Page](docs/screenshots/DeviceOffsetsPage.png)
+<img src="docs/screenshots/quick_menu.png" alt="Offsets Quick Menu" width="640">
 
-- **Enable Offsets**: Enable/disable device offsets.
-- **WorldFormDriver Offsets**: Allows to add offsets to the 'WorldFromDriver' transformations.
-- **DriverFromHead Offsets**: Allows to add offsets to the 'DriverFromHead' transformations.
-- **Driver Offsets**: Allows to add offsets to the device driver pose.
-- **Clear**: Set all offsets to zero.
+*Offsets Quick Menu — adjust all trackers' 左右 / 上下 / 前後 offsets in one screen*
 
-## Motion Compensation Settings Page:
+</div>
 
-![Motion Compensation Settings Page](docs/screenshots/MotionCompensationPage.png)
+### Differences from the parent fork
 
-**Vel/Acc Compensation Mode**: How should reported velocities and acceleration values be adjusted. The problem with only adjusting the headset position is that pose prediction also takes velocity and acceleration into accound. As long as the reported values to not differ too much from the real values, pose prediction errors are hardly noticeable. But with fast movements of the motion platform the pose prediction error can be noticeable. Available modes are:
+The driver-side change is small: the third offset family is now interpreted in the HMD's yaw frame, baked into the tracker's local coordinate system at the moment of input. The other two offset families (`WorldFromDriver Offsets` and `DriverFromHead Offsets`) work as before. UI additions: Quick Menu, save/load preset, Pause Offsets, role-based device labels, 左右/上下/前後 axis labels.
 
-- **Disabled**: Do not adjust velocity/acceration values.
-- **Set Zero**: Set all velocity/acceleration values to zero. Most simple form of velocity/acceleration compensation.
-- **Use Reference Tracker**: Substract the velocity/acceleration values of the motion compensation reference tracker/controller from the values reported from the headset. Most accurate form of velocity/acceleration compensation. However, it requires that the reference tracker/controller is as closely mounted to the head position as possible. The further away it is from the head position the larger the error.
-- **Linear Approximation w/ Moving Average (Experimental)**: Uses linear approximation to estimate the velocity/acceleration values. The used formula is: (current_position - last_position) / time_difference. To reduce jitter the average over the last few values is used.
-  - **Moving Average Window**: How many values are used for calculating the average.
-- **Kalman Filter (Experimental)**: The position values are fed into a kalman filter which then outputs a velocity value. The kalman filter implementation is based on the filter described [here](https://en.wikipedia.org/wiki/Kalman_filter#Example_application.2C_technical).
-  - **Process/Observation Noise**: Parameters used to fine-tune the kalman filter.
+### License
 
-## Input Remapping Page:
+GNU General Public License v3.0. Same as the original OpenVR-InputEmulator. See `LICENSE` and `NOTICE.txt` for the full text and the list of modifications.
 
-![Input Remapping Page](docs/screenshots/InputRemappingPage.png)
+### Credits
 
-Lists all available controller inputs (as reported by OpenVR) and their remapping statuses.
+- **Original work**: [OpenVR-InputEmulator](https://github.com/matzman666/OpenVR-InputEmulator) by matzman666
+- **Parent fork**: [OpenVR-InputEmulator-Fixed](https://github.com/Erimelowo/OpenVR-InputEmulator-Fixed) by Erimelowo (the matzman666 original no longer builds against current SteamVR; this fork is based on Erimelowo's modernized version)
+- **This fork**: by Touma-VRC, 2026
+- Inspired by the needs of the VRChat FBT community.
 
-### Digital Input Settings:
+---
 
-![Digital Input Settings Page](docs/screenshots/DigitalInputPage.png)
+<a name="日本語"></a>
 
-- **Normal Press**: The configured key binding is send when the user normally presses a button (or in other words, when the input is neither a long nor a double press).
-  - **Touch as Click**: Registers a button touch as a button click. Can be used to simulate a touchpad click when the user only touches the touchpad.
-- **Long Press**: The configured key binding is send when the user presses a button longer as the specified treshold.
-  - **Immediate Key Release**: The button down event for the double click event is immediately followed by a button up event. Useful for situations where a program only reacts on button up events (e.g. the SteamVR dashboard).
-- **Double Press**: The configured key binding is send when two consecutive button presses happen within the specified time threshold.
-  - **Immediate Key Release**: The button down event for the double click event is immediately followed by a button up event. Useful for situations where a program only reacts on button up events (e.g. the SteamVR dashboard).
+## 日本語
 
-Attention: When long and double presses are enabled normal controller input may be delayed because I first need to wait the specified thresholds before I can send a normal key event.
+### このソフトについて
 
-#### Digital Binding:
+OpenVR-InputEmulator のフォークです。**HMD相対オフセット**機能を新たに搭載し、VRChat のフルボディトラッキング (FBT) 校正を直感的に行えるようにしました。
 
-![Digital Binding Page](docs/screenshots/DigitalBindingPage.png)
+オリジナル版では、トラッカーのオフセットは生の X / Y / Z (ドライバ空間の軸) で指定する必要があります。これは開発者向けには適切ですが、プレイヤーが「足のトラッカーを 10cm 前に動かしたい」と思った時には、X・Y・Z が「前」「右」と一致しないので試行錯誤になります。
 
-Allows to configure a digital button binding. Available binding types are:
+本フォークでは、三番目のオフセット項目 (新しく「DriverFromHMD Translation Offsets」と命名) を以下のように解釈し直しました:
 
-- **No Remapping**: Original binding is used.
-- **Disabled**: Disables the button.
-- **OpenVR**: Remap to another OpenVR controller button.
-- **Keyboard**: Remap to a keyboard key.
-- **Suspend Redirect Mode**: Allows to temporarily suspend controller redirect mode.
-- **Toggle Touchpad Emulation**: Enables/disables the touchpad emulation mode for all analog axes.
+- **左右** — 値を入力した瞬間の HMD の水平方向の向きを基準にした左右。
+- **上下** — 上を向いていても下を向いていても、常にワールドの真上方向。
+- **前後** — 値を入力した瞬間の HMD の水平方向の向きを基準にした前後。
+- オフセット値は**入力した瞬間にトラッカーに焼き込まれます**。設定後は、オフセットがトラッカーへの剛体取り付けのように振る舞います。HMD を回してもトラッカーは追従しません。トラッカー自身が移動または回転した時のみ、オフセット位置はそれに付いて動きます。
 
-##### OpenVR
+### 親フォークからの追加機能
 
-![Digital Binding Page - OpenVR](docs/screenshots/DigitalBindingOpenVRPage.png)
+- **HMD相対オフセット** — 上記の通り。`Device Offsets > DriverFromHMD Translation Offsets` で設定。
+- **Offsets Quick Menu** — 全トラッカーの 左右 / 上下 / 前後 オフセットを一画面で編集できます。各トラッカーへ個別に入り直す必要はもうありません。
+- **デバイス役割表示** — `LHR-2B7395DD` のような生のシリアル番号ではなく、`Waist (Hips)`、`Left Foot`、`Right Knee` などの役割名で表示されます。
+- **ワンクリック保存・読み込み** — 現在接続中の全トラッカーのオフセットを名前付きプリセットとして保存し、後で一括で復元できます。アバターや遊び方 (座って遊ぶ / ダンス / VRChat FBT イベント) ごとの切り替えに便利です。
+- **Pause Offsets** — 全てのオフセットを一時的に無効化できます。VRChat の T-Pose キャリブレーション時に便利です。
 
-- **Controller**: Onto which controller should the input be redirected.
-- **Button**: Onto which OpenVR button should the input be mapped.
-- **Toggle Mode**: When the button is pressed longer than the specified threshold, the button state is toggled.
-- **Auto Trigger**: The button state is constantly pressed and then unpressed with the specified frequency as long as the user keeps the button pressed.
+### 動作環境
 
-##### Keyboard
+- Windows 10 / 11 (64-bit)
+- SteamVR
+- SteamVR 対応 HMD (Meta Quest 3 を PC Link でストリーミング接続して動作確認済み)
+- ライトハウスベースステーション上の Vive Tracker (1.0 / 2.0 / 3.0)
+- HMD がライトハウス系でない場合は、[OpenVR-SpaceCalibrator](https://github.com/pushrax/OpenVR-SpaceCalibrator) を導入して HMD とトラッカーの座標系を合わせてください。
 
-![Digital Binding Page - Keyboard](docs/screenshots/DigitalBindingKeyboardPage.png)
+### インストール手順
 
-- **Key**: Onto which keyboard key should the input be mapped.
-- **Using**: Allows to select which type of keyboard code is send:
-  - **Scan Code**: A scan code represents a physical key that may have different meaning depending on keyboard layout. Most DirectInput games only work with this setting.
-  - **Virtual Key Code**: A virtual key code represents a virtual key which always has the same meaning independent from the keyboard layout. Some applications only work with this setting.
-- **Toggle Mode**: When the button is pressed longer than the specified threshold, the key state is toggled.
-- **Auto Trigger**: The key state is constantly pressed and then unpressed with the specified frequency as long as the user keeps the button pressed.
+1. **SteamVR を完全に終了してください** (タスクトレイの SteamVR Status アイコンも右クリックして Quit SteamVR を選択)。
+2. [Booth](https://touma-vrc.booth.pm/) または [GitHub Releases](../../releases) から最新のインストーラをダウンロード。
+3. 管理者権限でインストーラを実行し、ウィザードに従ってください。
+4. OpenVR ドライバと SteamVR オーバーレイは自動的に登録されます。手動設定は不要です。
+5. SteamVR を起動。SteamVR ダッシュボードにオーバーレイのアイコンが表示されます。
 
-### Analog Input Settings:
+### 基本的な使い方
 
-![Analog Input Settings Page](docs/screenshots/AnalogBindingPage.png)
+1. SteamVR ダッシュボードからオーバーレイを開きます。
+2. **Device** ドロップダウンからトラッカーを選択 (シリアル番号ではなく「Left Foot」などの役割名で表示されます)。
+3. **Device Offsets** をクリックし、上部の **Enable Offsets** にチェックを入れます。
+4. **DriverFromHMD Translation Offsets** セクションで、左右 / 上下 / 前後 に値を入力します。値は入力した瞬間の HMD の向きを基準に解釈されます。
+5. 設定が満足できる状態になったら、画面を戻って **Offset Preset** セクションの **Save Current** をクリック。任意の名前で、現在接続中の全トラッカーの設定をプリセットとして保存します。
+6. 後でそのプリセットを適用するには、ドロップダウンから選択して **Apply** をクリック。
 
-Allows to configure an analog input. Available binding types are:
+複数のトラッカーをまとめて調整したい場合は、**Offsets QuickMenu** をクリックして一画面で全トラッカーを確認・編集できます。
 
-- **No Remapping**: Original binding is used.
-- **Disabled**: Disables the analog input.
-- **OpenVR**: Remap to another OpenVR controller axis.
+### コツ
 
-The touchpad emulation mode for this analog axis can also be configured here. Touchpad emulation mode tries to emulate the behaviour of a touchpad with a joystick. The primary purpose of this option is to make Fallout 4 VR playable with Oculus Rift controllers, but it can also be used for other games.
+- まず VRChat 側で T-Pose キャリブレーションを**先に**実施し、その後にオフセットを有効化してください。先にオフセットが入った状態で T-Pose を取ると、オフセット自体がキャリブレーションに含まれてしまいます。
+- T-Pose をやり直したい場合は **Pause Offsets** をクリックすると全オフセットが一時無効になります。T-Pose 完了後、Pause Offsets のチェックを外せば復帰します。
+- オフセット設定後に Space Calibrator を再キャリブレーションした場合は、プリセットを再 Apply してください。古いオフセット値は以前の空間キャリブレーションに基づいて計算されているため、ズレが発生します。
+- 数値の単位は **センチメートル** です。例えば `2.0` は 2cm です。
 
-Available touch emulation modes:
+### スクリーンショット
 
-- **Position Based**: This modes assumes that the joystick can only move further away from the center position. All newer positions smaller can the last known position are ignored. The saved highest position is reset when the center position has been reached. The idea is to ignore input events caused by the joystick snapping back to center position. As soon as the center position is reached it is immediately send to the application in a position update. This helps with movement controls as otherwise any movement in an application is not reset when the joystick is let go by the user.
+<div align="center">
 
-- **Position Based (Deferred Zero Update)**: This modes works exactly the same as the mode above with one small difference. The position update when the center position is reached is not immediately send but only when the joystick starts moving again. This helps with applications that have problems with the above mode but messes up movement controls.
+<img src="docs/screenshots/main_ui.png" alt="メイン画面" width="640">
 
-**Button Press Deadzone Fix**: Some applications ignore touchpad/joystick clicks when the position is exactly the center position. This fix can help in this case by slightly offsetting the position when a click has been registered exactly at center position.
+*メイン画面: Pause Offsets、Quick Menu、プリセットの保存/読み込み機能*
 
-##### OpenVR
+<img src="docs/screenshots/device_list.png" alt="役割名表示のデバイスリスト" width="640">
 
-![Analog Binding Page - OpenVR](docs/screenshots/AnalogBindingOpenVRPage.png)
+*デバイス選択ドロップダウン: シリアル番号ではなく役割名 (Waist / Foot / Knee など) で表示*
 
-- **Controller**: Onto which controller should the input be redirected.
-- **Axis**: Onto which OpenVR axis should the input be mapped.
-- **Invert X/Y Axis**: Inverts the x or y axis.
-- **Swap X/Y**: Swaps the x and the y axis.
-- **Dead Zone**: Allows to configure dead zones in the middle (left value) and at the edges (right value) of an axis. The deadzone in the middle is mapped to 0, and the deadzone at the edges is mapped to 1. All input between the deadzones is remapped to an interval of [0, 1].
+<img src="docs/screenshots/quick_menu.png" alt="Offsets Quick Menu" width="640">
 
-## client_commandline commands:
+*Offsets Quick Menu — 全トラッカーの 左右 / 上下 / 前後 オフセットを一画面で調整*
 
-### listdevices
+</div>
 
-Lists all openvr devices.
+### 親フォークからの違い
 
-### buttonevent
+ドライバ側の変更は小さいです。三番目のオフセット項目が HMD のヨー (水平方向の向き) を基準に解釈され、入力した瞬間にトラッカーのローカル座標系に焼き込まれるようになりました。他の二種類のオフセット (`WorldFromDriver Offsets` と `DriverFromHead Offsets`) は従来通り動作します。UI 追加機能: Quick Menu、保存・読み込みプリセット、Pause Offsets、役割ベースのデバイス表示、左右/上下/前後 の軸ラベル。
 
-```
-buttonevent [press|pressandhold|unpress|touch|touchandhold|untouch] <openvrId> <buttonId> [<pressTime>]
-```
+### ライセンス
 
-Emulates a button event on the given device. See [openvr.h](https://github.com/ValveSoftware/openvr/blob/master/headers/openvr.h#L600-L626) for available button ids.
+GNU General Public License v3.0。オリジナル版と同じです。全文と変更点リストは `LICENSE` と `NOTICE.txt` をご覧ください。
 
-### axisevent
+### クレジット
 
-```
-axisevent <openvrId> <axisId> <x> <y>
-```
+- **オリジナル**: [OpenVR-InputEmulator](https://github.com/matzman666/OpenVR-InputEmulator) by matzman666
+- **親フォーク**: [OpenVR-InputEmulator-Fixed](https://github.com/Erimelowo/OpenVR-InputEmulator-Fixed) by Erimelowo (matzman666 氏のオリジナル版は現行 SteamVR ではビルドが通らないため、本フォークは Erimelowo 氏が現代化した版をベースにしています)
+- **本フォーク**: Touma-VRC, 2026
+- VRChat FBT コミュニティのニーズに応えるべく作成しました。
 
-Emulates an axisevent on the given device. Valid axis ids are 0-4.
+---
 
-### proximitysensor
+<div align="center">
 
-```
-proximitysensor <openvrId> [0|1]
-```
+🐾 *Happy tracking!* 🐾
 
-Emulates a proximity sensor event on the given device.
-
-### getdeviceproperty
-
-```
-getdeviceproperty <openvrId> scan
-```
-
-Scans the given device for all available device properties.
-
-```
-getdeviceproperty <openvrId> <property> [int32|uint64|float|bool|string]
-```
-
-Returns the given device property. See [openvr.h](https://github.com/ValveSoftware/openvr/blob/master/headers/openvr.h#L235-L363) for valid property ids.
-
-### listvirtual
-
-Lists all virtual devices managed by this driver.
-
-### addcontroller
-
-```
-addcontroller <serialnumber>
-```
-
-Creates a new virtual controller. Serialnumber needs to be unique. When the command is successful the id of the virtual controller is written to stdout.
-
-### publishdevice
-
-```
-publishdevice <virtualId>
-```
-
-Tells OpenVR that there is a new device. Before this command is called all device properties should have been set.
-
-### setdeviceproperty
-
-```
-setdeviceproperty <virtualId> <property> [int32|uint64|float|bool|string] <value>
-```
-
-Sets the given device property. See [openvr.h](https://github.com/ValveSoftware/openvr/blob/master/headers/openvr.h#L235-L363) for valid property ids.
-
-### removedeviceproperty
-
-```
-removedeviceproperty <virtualId> <property>
-```
-
-Removes the given device property. See [openvr.h](https://github.com/ValveSoftware/openvr/blob/master/headers/openvr.h#L235-L363) for valid property ids.
-
-### setdeviceconnection
-
-```
-setdeviceconnection <virtualId> [0|1]
-```
-
-Sets the connection state of the given virtual device. Default value is disconnected.
-
-### setdeviceposition
-
-```
-setdeviceposition <virtualId> <x> <y> <z>
-```
-
-Sets the position of the given virtual device.
-
-### setdevicerotation
-
-```
-setdeviceposition <virtualId> <x> <y> <z>
-```
-
-setdevicerotation <virtualId> <yaw> <pitch> <roll>.
-
-## Client API
-
-ToDo. See [vrinputemulator.h](https://github.com/matzman666/OpenVR-InputEmulator/blob/master/lib_vrinputemulator/include/vrinputemulator.h).
-
-# Command-Line Client Examples
-
-## Create virtual controller
-
-```
-# Create virtual controller
-client_commandline.exe addcontroller controller01 # Writes virtual device id to stdout (Let's assume it is 0)
-# Set device properties
-client_commandline.exe setdeviceproperty 0 1000	string	lighthouse
-client_commandline.exe setdeviceproperty 0 1001	string	"Vive Controller MV"
-client_commandline.exe setdeviceproperty 0 1003	string	vr_controller_vive_1_5
-client_commandline.exe setdeviceproperty 0 1004	bool	0
-client_commandline.exe setdeviceproperty 0 1005	string	HTC
-client_commandline.exe setdeviceproperty 0 1006	string	"1465809478 htcvrsoftware@firmware-win32 2016-06-13 FPGA 1.6/0/0 VRC 1465809477 Radio 1466630404"
-client_commandline.exe setdeviceproperty 0 1007	string	"product 129 rev 1.5.0 lot 2000/0/0 0"
-client_commandline.exe setdeviceproperty 0 1010	bool	1
-client_commandline.exe setdeviceproperty 0 1017	uint64	2164327680
-client_commandline.exe setdeviceproperty 0 1018	uint64	1465809478
-client_commandline.exe setdeviceproperty 0 1029	int32	2
-client_commandline.exe setdeviceproperty 0 3001	uint64	12884901895
-client_commandline.exe setdeviceproperty 0 3002	int32	1
-client_commandline.exe setdeviceproperty 0 3003	int32	3
-client_commandline.exe setdeviceproperty 0 3004	int32	0
-client_commandline.exe setdeviceproperty 0 3005	int32	0
-client_commandline.exe setdeviceproperty 0 3006	int32	0
-client_commandline.exe setdeviceproperty 0 3007	int32	0
-client_commandline.exe setdeviceproperty 0 5000	string	icons
-client_commandline.exe setdeviceproperty 0 5001	string	{htc}controller_status_off.png
-client_commandline.exe setdeviceproperty 0 5002	string	{htc}controller_status_searching.gif
-client_commandline.exe setdeviceproperty 0 5003	string	{htc}controller_status_searching_alert.gif
-client_commandline.exe setdeviceproperty 0 5004	string	{htc}controller_status_ready.png
-client_commandline.exe setdeviceproperty 0 5005	string	{htc}controller_status_ready_alert.png
-client_commandline.exe setdeviceproperty 0 5006	string	{htc}controller_status_error.png
-client_commandline.exe setdeviceproperty 0 5007	string	{htc}controller_status_standby.png
-client_commandline.exe setdeviceproperty 0 5008	string	{htc}controller_status_ready_low.png
-# Let OpenVR know that there is a new device
-client_commandline.exe publishdevice 0
-# Connect the device
-client_commandline.exe setdeviceconnection 0 1
-# Set the device position
-client_commandline.exe setdeviceposition 0 -1 -1 -1
-```
-
-## Initial Setup
-
-### Boost
-
-1. Go to https://sourceforge.net/projects/boost/files/boost-binaries/1.63.0/
-1. Download Boost 1.63 Binaries (boost_1_63_0-msvc-14.0-64.exe)
-1. Install Boost into OpenVR-InputEmulator/third-party/boost_1_63_0
-
-
-### Qt
-
-1. Go to https://download.qt.io/new_archive/qt/5.7/5.7.0/
-1. Download Qt 5.7.0
-1. Run the Qt installer (I installed it to "c:\Qt")
-1. Goto `OpenVR-InputEmulator\client_overlay`
-1. Create `client_overlay.vcxproj.user` and paste the following into it:
-
-```
-<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <QTDIR>C:\Qt\5.7\msvc2015_64</QTDIR>
-  </PropertyGroup>
-</Project>
-```
-
-NOTE: Adjust the path the `msvc2015_64` folder in Qt to match your installation
-
-## Building
-
-1. Open _'VRInputEmulator.sln'_ in Visual Studio 2019.
-2. Build driver_vrinputemulator.
-
-# Known Bugs
-
-- The shared-memory message queue is prone to deadlock the driver when the client crashes or is exited ungracefully.
-
-# License
-
-This software is released under GPL 3.0.
+</div>

@@ -90,6 +90,13 @@ public:
 	DeviceManipulationHandle* getDeviceManipulationHandleById(uint32_t unWhichDevice);
 	DeviceManipulationHandle* getDeviceManipulationHandleByPropertyContainer(vr::PropertyContainerHandle_t container);
 
+	// HMD world-yaw cache. Refreshed every frame when the HMD's pose is processed.
+	// Allows tracker pose updates to translate "HMD-relative" offsets into world space
+	// regardless of the HMD driver's coordinate system (Space Calibrator friendly).
+	void cacheHmdWorldYaw(const vr::DriverPose_t& hmdPose);
+	vr::HmdQuaternion_t getHmdWorldYaw();
+	bool isHmdWorldYawValid() { return m_hmdWorldYawValid; }
+
 
 	// internal API
 
@@ -173,6 +180,11 @@ private:
 	std::string _propertiesOverrideHmdModel;
 	std::string _propertiesOverrideHmdTrackingSystem;
 	bool _propertiesOverrideGenericTrackerFakeController;
+
+	// HMD world-yaw cache (for HMD-relative translation offsets)
+	std::mutex m_hmdYawMutex;
+	vr::HmdQuaternion_t m_hmdWorldYaw = { 1.0, 0.0, 0.0, 0.0 };
+	bool m_hmdWorldYawValid = false;
 };
 
 

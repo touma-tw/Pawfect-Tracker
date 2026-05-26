@@ -1,6 +1,7 @@
 
 #include "ServerDriver.h"
 
+#include <cmath>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "VirtualDeviceDriver.h"
 #include "../devicemanipulation/DeviceManipulationHandle.h"
@@ -511,6 +512,60 @@ DeviceManipulationHandle* ServerDriver::getDeviceManipulationHandleByPropertyCon
 		return it->second;
 	}
 	return nullptr;
+}
+
+
+// === HMD world-yaw caching ===
+// Called from DeviceManipulationHandle::handlePoseUpdate when the HMD posts a pose.
+// Computes the HMD's orientation in WORLD space (i.e. after qWorldFromDriverRotation
+// is applied -- which is what Space Calibrator manipulates), then extracts a pure
+// yaw quaternion (rotation around world Y axis only). Pitch and roll are discarded,
+// so looking down at your feet does not affect the "forward" direction.
+void ServerDriver::cacheHmdWorldYaw(const vr::DriverPose_t& hmdPose) {
+	if (!hmdPose.poseIsValid || hmdPose.result != vr::TrackingResult_Running_OK) {
+		return;
+	}
+
+	// q_world = qWorldFromDriverRotation * qRotation
+	const auto& a = hmdPose.qWorldFromDriverRotation;
+	const auto& b = hmdPose.qRotation;
+	vr::HmdQuaternion_t qWorld;
+	qWorld.w = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z;
+	qWorld.x = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y;
+	qWorld.y = a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x;
+	qWorld.z = a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w;
+
+	// Forward vector of qWorld: q * (0, 0, -1) = (-2*(x*z + w*y), -2*(y*z - w*x), -(1 - 2*(x*x + y*y)))
+	double fx = -2.0 * (qWorld.x * qWorld.z + qWorld.w * qWorld.y);
+	double fz = -(1.0 - 2.0 * (qWorld.x * qWorld.x + qWorld.y * qWorld.y));
+
+	double len = std::sqrt(fx * fx + fz * fz);
+	if (len < 1e-6) {
+		// Looking straight up/down -- yaw undefined. Keep previous cache.
+		return;
+	}
+	fx /= len;
+	fz /= len;
+
+	// Yaw such that qYaw rotates (0,0,-1) into (fx, 0, fz).
+	double yaw = std::atan2(fx, -fz);
+
+	vr::HmdQuaternion_t qYaw;
+	qYaw.w = std::cos(yaw * 0.5);
+	qYaw.x = 0.0;
+	qYaw.y = std::sin(yaw * 0.5);
+	qYaw.z = 0.0;
+
+	{
+		std::lock_guard<std::mutex> lock(m_hmdYawMutex);
+		m_hmdWorldYaw = qYaw;
+		m_hmdWorldYawValid = true;
+	}
+}
+
+vr::HmdQuaternion_t ServerDriver::getHmdWorldYaw() {
+	std::lock_guard<std::mutex> lock(m_hmdYawMutex);
+	return m_hmdWorldYaw;
 }
 
 

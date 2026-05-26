@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="680" height="240" viewBox="0 0 680 240" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Nikukyutto! - Pawfect Tracker</title>
+<desc>Banner for the Nikukyutto! - Pawfect Tracker software, a SteamVR / VRChat full body tracking adjustment tool. Features a hand-drawn pink paw print on the left and stylized Japanese and English titles on the right, on a cream paper background.</desc>
+
+<!-- Cream paper-like background -->
+<rect x="0" y="0" width="680" height="240" fill="#FAF6EE"/>
+
+<!-- Subtle dot decoration scattered -->
+<g fill="#D4AB9A" opacity="0.5">
+  <circle cx="30" cy="30" r="2.5"/>
+  <circle cx="55" cy="200" r="2"/>
+  <circle cx="640" cy="35" r="2.5"/>
+  <circle cx="615" cy="210" r="2"/>
+  <circle cx="660" cy="120" r="1.5"/>
+  <circle cx="20" cy="120" r="1.5"/>
+</g>
+
+<!-- Sparkle decorations -->
+<g stroke="#E5A87F" stroke-width="1.5" fill="none" stroke-linecap="round">
+  <path d="M 40 60 L 40 70 M 35 65 L 45 65"/>
+  <path d="M 645 80 L 645 88 M 641 84 L 649 84"/>
+  <path d="M 25 170 L 25 178 M 21 174 L 29 174"/>
+  <path d="M 655 160 L 655 168 M 651 164 L 659 164"/>
+</g>
+
+<!-- Paw print, hand-drawn style. Center at (130, 125). -->
+<g transform="translate(130, 125)">
+  <!-- Main pad -->
+  <path d="M -42 25 C -45 -2, -28 -22, -2 -23 C 24 -22, 44 -3, 44 24 C 44 44, 26 56, 0 56 C -25 56, -42 44, -42 25 Z"
+        fill="#FFC9D4" stroke="#9B5A6B" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- Four toe beans -->
+  <ellipse cx="-32" cy="-31" rx="11" ry="14" fill="#FFDCE3" stroke="#9B5A6B" stroke-width="2" transform="rotate(-18 -32 -31)"/>
+  <ellipse cx="-11" cy="-46" rx="11" ry="14" fill="#FFDCE3" stroke="#9B5A6B" stroke-width="2" transform="rotate(-6 -11 -46)"/>
+  <ellipse cx="13" cy="-46" rx="11" ry="14" fill="#FFDCE3" stroke="#9B5A6B" stroke-width="2" transform="rotate(6 13 -46)"/>
+  <ellipse cx="34" cy="-31" rx="11" ry="14" fill="#FFDCE3" stroke="#9B5A6B" stroke-width="2" transform="rotate(18 34 -31)"/>
+
+  <!-- Highlight shines -->
+  <ellipse cx="-30" cy="-37" rx="3" ry="2" fill="#FFFFFF" opacity="0.9" transform="rotate(-18 -30 -37)"/>
+  <ellipse cx="-9" cy="-52" rx="3" ry="2" fill="#FFFFFF" opacity="0.9"/>
+  <ellipse cx="15" cy="-52" rx="3" ry="2" fill="#FFFFFF" opacity="0.9"/>
+  <ellipse cx="36" cy="-37" rx="3" ry="2" fill="#FFFFFF" opacity="0.9" transform="rotate(18 36 -37)"/>
+  <ellipse cx="-15" cy="10" rx="6" ry="3" fill="#FFFFFF" opacity="0.7"/>
+</g>
+
+<!-- Decorative wavy underline -->
+<path d="M 270 200 Q 285 197, 300 200 T 330 200 T 360 200 T 390 200 T 420 200 T 450 200"
+      stroke="#E5A87F" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+<!-- Text block, right side -->
+<g transform="translate(265, 0)">
+  <!-- Japanese title -->
+  <text x="0" y="92"
+        font-family="'Hannari', 'Klee', 'Yu Mincho', 'Hiragino Mincho ProN', serif"
+        font-size="44" font-weight="500" fill="#7A3A4A">にくきゅっと!</text>
+
+  <!-- English subtitle -->
+  <text x="2" y="134"
+        font-family="'Caveat', 'Comic Sans MS', cursive"
+        font-size="26" font-weight="400" fill="#B85A6B" letter-spacing="0.5">~ Pawfect Tracker ~</text>
+
+  <!-- Tagline -->
+  <text x="2" y="170"
+        font-family="'Klee', 'Yu Mincho', 'Hiragino Mincho ProN', serif"
+        font-size="13" font-weight="400" fill="#8B6A55">SteamVR / VRChat フルボディトラッキング (FBT) 調整ツール</text>
+</g>
+</svg>

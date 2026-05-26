@@ -208,7 +208,9 @@ void OverlayController::Init(QQmlEngine* qmlEngine) {
 		throw std::runtime_error(std::string("Failed to initialize OpenVR: ") + std::string(vr::VR_GetVRInitErrorAsEnglishDescription(initError)));
 	}
 
-	m_runtimePathUrl = QUrl::fromLocalFile(vr::VR_RuntimePath());
+	{ char runtimePathBuf[1024]; uint32_t runtimePathReq = 0;
+	  vr::VR_GetRuntimePath(runtimePathBuf, sizeof(runtimePathBuf), &runtimePathReq);
+	  m_runtimePathUrl = QUrl::fromLocalFile(runtimePathBuf); }
 	LOG(INFO) << "VR Runtime Path: " << m_runtimePathUrl.toLocalFile();
 
 	LOG(INFO) << "sizeof(DigitalBinding) = " << sizeof(vrinputemulator::DigitalBinding);
@@ -367,7 +369,7 @@ void OverlayController::SetWidget(QQuickItem* quickItem, const std::string& name
 		}
 		vr::VROverlay()->SetOverlayWidthInMeters(m_ulOverlayHandle, 2.5f);
 		vr::VROverlay()->SetOverlayInputMethod(m_ulOverlayHandle, vr::VROverlayInputMethod_Mouse);
-		vr::VROverlay()->SetOverlayFlag(m_ulOverlayHandle, vr::VROverlayFlags_SendVRScrollEvents, true);
+		vr::VROverlay()->SetOverlayFlag(m_ulOverlayHandle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
 		std::string thumbIconPath = QApplication::applicationDirPath().toStdString() + "\\res\\thumbicon.png";
 		if (QFile::exists(QString::fromStdString(thumbIconPath))) {
 			vr::VROverlay()->SetOverlayFromFile(m_ulOverlayThumbnailHandle, thumbIconPath.c_str());
@@ -503,7 +505,7 @@ void OverlayController::OnTimeoutPumpEvents() {
 			}
 			break;
 
-			case vr::VREvent_Scroll: {
+			case vr::VREvent_ScrollDiscrete: {
 				// Wheel speed is defined as 1/8 of a degree
 				QWheelEvent wheelEvent(m_ptLastMouse, m_pWindow->mapToGlobal(m_ptLastMouse), QPoint(),
 					QPoint(vrEvent.data.scroll.xdelta * 360.0f * 8.0f, vrEvent.data.scroll.ydelta * 360.0f * 8.0f),
@@ -601,7 +603,7 @@ const vr::VROverlayHandle_t& OverlayController::overlayThumbnailHandle() {
 
 
 void OverlayController::showKeyboard(QString existingText, unsigned long userValue) {
-	vr::VROverlay()->ShowKeyboardForOverlay(m_ulOverlayHandle, vr::k_EGamepadTextInputModeNormal, vr::k_EGamepadTextInputLineModeSingleLine, "Input Emulator Overlay", 1024, existingText.toStdString().c_str(), false, userValue);
+	vr::VROverlay()->ShowKeyboardForOverlay(m_ulOverlayHandle, vr::k_EGamepadTextInputModeNormal, vr::k_EGamepadTextInputLineModeSingleLine, 0, "Input Emulator Overlay", 1024, existingText.toStdString().c_str(), userValue);
 }
 
 

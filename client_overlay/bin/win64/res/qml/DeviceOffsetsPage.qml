@@ -42,6 +42,9 @@ MyStackViewPage {
         MyOffsetGroupBox {
             boxTitle: "WorldFromDriver Offsets"
             id: worldFromDriverOffsetBox
+            labelX: "X"
+            labelY: "Y"
+            labelZ: "Z"
             setTranslationOffset: function(x, y, z) {
                 if (deviceIndex >= 0) {
                     DeviceManipulationTabController.setWorldFromDriverTranslationOffset(deviceIndex, x, y, z)
@@ -93,6 +96,9 @@ MyStackViewPage {
         MyOffsetGroupBox {
             boxTitle: "DriverFromHead Offsets"
             id: driverFromHeadOffsetBox
+            labelX: "X"
+            labelY: "Y"
+            labelZ: "Z"
             setTranslationOffset: function(x, y, z) {
                 if (deviceIndex >= 0) {
                     DeviceManipulationTabController.setDriverFromHeadTranslationOffset(deviceIndex, x, y, z)
@@ -142,8 +148,11 @@ MyStackViewPage {
         }
 
         MyOffsetGroupBox {
-            boxTitle: "Driver Offsets"
+            boxTitle: "DriverFromHMD Translation Offsets"
             id: driverOffsetBox
+            labelX: "左右"
+            labelY: "上下"
+            labelZ: "前後"
             setTranslationOffset: function(x, y, z) {
                 if (deviceIndex >= 0) {
                     DeviceManipulationTabController.setDriverTranslationOffset(deviceIndex, x, y, z)

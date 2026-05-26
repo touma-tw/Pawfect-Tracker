@@ -1,0 +1,149 @@
+================================================================
+にくきゅっと! ~ Pawfect Tracker ~
+================================================================
+
+This software is a modified fork of OpenVR-InputEmulator.
+このソフトウェアは OpenVR-InputEmulator の改変版です。
+
+
+----------------------------------------------------------------
+English
+----------------------------------------------------------------
+
+  ORIGINAL WORK:
+    OpenVR-InputEmulator
+    Copyright (c) 2016-2018 matzman666
+    Upstream source:
+      https://github.com/matzman666/OpenVR-InputEmulator
+    License: GNU General Public License v3.0
+
+  INTERMEDIATE FORK (direct parent of this fork):
+    OpenVR-InputEmulator-Fixed
+    Source:
+      https://github.com/Erimelowo/OpenVR-InputEmulator-Fixed
+    Modernized for current SteamVR / OpenVR versions.
+    License: GNU General Public License v3.0
+
+  THIS FORK:
+    にくきゅっと! ~ Pawfect Tracker ~
+    Copyright (c) 2026 Touma-VRC
+    Distribution:
+      https://touma-vrc.booth.pm/
+    Source:
+      https://github.com/touma-tw
+    License: GNU General Public License v3.0
+
+  MODIFICATIONS FROM THE PARENT FORK:
+    - Repurposed the third offset family in the Device Offsets
+      page from "Driver Offsets" (raw driver-space XYZ) to
+      "DriverFromHMD Translation Offsets". Input is now
+      interpreted in the HMD's yaw frame (right / up /
+      forward relative to the user's facing direction),
+      then frozen into the tracker's local space at the
+      moment of input. The frozen offset behaves as a
+      rigid body attachment: tracker translation/rotation
+      carries the offset with it, but HMD movement does not
+      affect the result. UI labels for the three axes have
+      been changed from "X / Y / Z" to "左右 / 上下 / 前後"
+      (left-right / up-down / forward-back).
+    - Added one-click save and load of all tracker offset
+      configurations as named presets.
+    - Added Pause Offsets feature for T-Pose calibration
+      workflows in VRChat.
+    - Added Offsets Quick Menu page: view and adjust every
+      tracker's offsets on a single screen, sorted by
+      device role.
+    - Device list now displays device roles (Waist, Foot,
+      Left Knee, etc.) instead of raw serial numbers, using
+      newer OpenVR APIs.
+
+  LICENSE NOTICE:
+    This program is free software: you can redistribute it
+    and/or modify it under the terms of the GNU General
+    Public License as published by the Free Software
+    Foundation, either version 3 of the License, or (at your
+    option) any later version.
+
+    This program is distributed in the hope that it will be
+    useful, but WITHOUT ANY WARRANTY; without even the
+    implied warranty of MERCHANTABILITY or FITNESS FOR A
+    PARTICULAR PURPOSE. See the GNU General Public License
+    for more details.
+
+    See LICENSE for the full text of the GNU GPL v3.
+
+
+----------------------------------------------------------------
+日本語
+----------------------------------------------------------------
+
+  オリジナル作品:
+    OpenVR-InputEmulator
+    Copyright (c) 2016-2018 matzman666
+    アップストリームソース:
+      https://github.com/matzman666/OpenVR-InputEmulator
+    ライセンス: GNU General Public License v3.0
+
+  中間フォーク (本フォークの直接の親):
+    OpenVR-InputEmulator-Fixed
+    ソース:
+      https://github.com/Erimelowo/OpenVR-InputEmulator-Fixed
+    現行 SteamVR / OpenVR バージョンに対応させた版です。
+    ライセンス: GNU General Public License v3.0
+
+  本フォーク:
+    にくきゅっと! ~ Pawfect Tracker ~
+    Copyright (c) 2026 Touma-VRC
+    配布先:
+      https://touma-vrc.booth.pm/
+    ソース:
+      https://github.com/touma-tw
+    ライセンス: GNU General Public License v3.0
+
+  親フォークからの変更点:
+    - Device Offsets ページの三番目のオフセット項目を、従来の
+      「Driver Offsets」(ドライバ空間の生 XYZ) から
+      「DriverFromHMD Translation Offsets」に変更。入力値は
+      HMD のヨー (水平方向の向き) を基準に「右 / 上 / 前」と
+      して解釈され、入力した瞬間にトラッカーのローカル
+      座標系に固定されます。これによりオフセットは
+      トラッカーへの剛体取り付けのように動作し、トラッカー
+      自身の移動・回転にはオフセットが追従しますが、HMD の
+      動きはオフセットに影響しません。三軸の UI ラベルは
+      「X / Y / Z」から「左右 / 上下 / 前後」に変更されています。
+    - 全トラッカーのオフセット設定を名前付きプリセットとして
+      ワンクリックで保存・読み込みする機能を追加。
+    - VRChat の T-Pose キャリブレーション作業のための
+      一時オフセット無効化機能 (Pause Offsets) を追加。
+    - Offsets Quick Menu ページを追加: 全トラッカーのオフセットを
+      デバイス役割順に並べて一画面で確認・調整できます。
+    - デバイスリストでシリアル番号 (LHR-xxxx) の代わりに
+      役割名 (Waist, Foot, Left Knee など) を表示するよう改善。
+
+  ライセンス通知:
+    本プログラムはフリーソフトウェアです。Free Software
+    Foundation が公表する GNU General Public License
+    (バージョン3、または(あなたの選択により)それ以降の任意の
+    バージョン)の条件のもとで、再配布や改変が可能です。
+
+    本プログラムは有用であることを願って配布されていますが、
+    一切の保証はありません。商品性または特定の目的への適合性
+    についての暗黙の保証もありません。詳細については GNU
+    General Public License を参照してください。
+
+    GNU GPL v3 の全文は LICENSE ファイルをご覧ください。
+
+
+----------------------------------------------------------------
+GPL v3 SOURCE CODE OFFER / GPL v3 ソースコード提供のお知らせ
+----------------------------------------------------------------
+
+  In compliance with GNU GPL v3, the complete corresponding
+  source code for this software is available at:
+
+    https://github.com/touma-tw
+
+  GNU GPL v3 に従い、本ソフトウェアの完全な対応ソースコードは
+  上記 URL にて公開されています。
+
+================================================================

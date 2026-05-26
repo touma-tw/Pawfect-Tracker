@@ -51,6 +51,19 @@ private:
 	vr::HmdQuaternion_t m_deviceRotationOffset = { 1.0, 0.0, 0.0, 0.0 };
 	vr::HmdVector3d_t m_deviceTranslationOffset = { 0.0, 0.0, 0.0 };
 
+	// HMD-relative offset (repurposes the "Driver Offsets" UI field as input):
+	//   m_lastSeenHmdRelativeInput  = the last input value we converted to a frozen vec.
+	//                                 Used for dirty detection on every RunFrame.
+	//   m_frozenDriverFromHeadAdd   = the translation vector to add to the pose's
+	//                                 vecDriverFromHeadTranslation every frame. Computed
+	//                                 once at the moment the user changes the input,
+	//                                 using the HMD's yaw and this device's rotation
+	//                                 captured at that instant. Never recomputed unless
+	//                                 the input changes again.
+	vr::HmdVector3d_t m_lastSeenHmdRelativeInput = { 0.0, 0.0, 0.0 };
+	vr::HmdVector3d_t m_frozenDriverFromHeadAdd = { 0.0, 0.0, 0.0 };
+	bool m_frozenDriverFromHeadValid = false;
+
 	struct DigitalInputRemappingInfo {
 		int state = 0;
 		std::chrono::system_clock::time_point timeout;

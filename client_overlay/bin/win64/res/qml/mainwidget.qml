@@ -42,6 +42,9 @@ Rectangle {
         stackView: mainView
     }
 
+    property OffsetQuickMenuPage offsetQuickMenuPage: OffsetQuickMenuPage {
+        stackView: mainView
+    }
 
     StackView {
         id: mainView

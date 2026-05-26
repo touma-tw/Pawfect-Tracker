@@ -10,6 +10,23 @@
 // application namespace
 namespace inputemulator {
 
+// Convert "vive_tracker_left_foot" -> "Left Foot"; returns "" if no role suffix.
+static std::string parseTrackerRole(const std::string& controllerType) {
+	const std::string prefix = "vive_tracker_";
+	if (controllerType.length() <= prefix.length()) return "";
+	if (controllerType.compare(0, prefix.length(), prefix) != 0) return "";
+	std::string role = controllerType.substr(prefix.length());
+	if (role.empty()) return "";
+	std::string result;
+	bool cap = true;
+	for (unsigned char c : role) {
+		if (c == '_') { result += ' '; cap = true; }
+		else if (cap) { result += (char)toupper(c); cap = false; }
+		else { result += (char)c; }
+	}
+	return result;
+}
+
 DeviceManipulationTabController::~DeviceManipulationTabController() {
 	if (identifyThread.joinable()) {
 		identifyThread.join();
@@ -20,6 +37,7 @@ DeviceManipulationTabController::~DeviceManipulationTabController() {
 void DeviceManipulationTabController::initStage1() {
 	reloadDeviceManipulationProfiles();
 	reloadDeviceManipulationSettings();
+	reloadOffsetPresets();
 }
 
 
@@ -42,6 +60,11 @@ void DeviceManipulationTabController::initStage2(OverlayController * parent, QQu
 					} else {
 						info->serial = std::string("<unknown serial>");
 						LOG(ERROR) << "Could not get serial of device " << id;
+					}
+
+					vr::VRSystem()->GetStringTrackedDeviceProperty(id, vr::Prop_ControllerType_String, buffer, vr::k_unMaxPropertyStringSize, &pError);
+					if (pError == vr::TrackedProp_Success) {
+						info->trackerRole = parseTrackerRole(std::string(buffer));
 					}
 
 					try {
@@ -104,6 +127,11 @@ void DeviceManipulationTabController::eventLoopTick(vr::TrackedDevicePose_t* dev
 							LOG(ERROR) << "Could not get serial of device " << id;
 						}
 
+						vr::VRSystem()->GetStringTrackedDeviceProperty(id, vr::Prop_ControllerType_String, buffer, vr::k_unMaxPropertyStringSize, &pError);
+						if (pError == vr::TrackedProp_Success) {
+							info->trackerRole = parseTrackerRole(std::string(buffer));
+						}
+
 						try {
 							vrinputemulator::DeviceInfo info2;
 							parent->vrInputEmulator().getDeviceInfo(info->openvrId, info2);
@@ -149,6 +177,13 @@ QString DeviceManipulationTabController::getDeviceSerial(unsigned index) {
 	} else {
 		return QString("<ERROR>");
 	}
+}
+
+QString DeviceManipulationTabController::getDeviceRole(unsigned index) {
+	if (index < deviceInfos.size()) {
+		return QString::fromStdString(deviceInfos[index]->trackerRole);
+	}
+	return QString();
 }
 
 unsigned DeviceManipulationTabController::getDeviceId(unsigned index) {
@@ -1189,8 +1224,34 @@ bool DeviceManipulationTabController::updateDeviceInfo(unsigned index) {
 		} catch (std::exception& e) {
 			LOG(ERROR) << "Exception caught while getting device info: " << e.what();
 		}
+		// Retry trackerRole if it wasn't available when the device first appeared
+		if (deviceInfos[index]->trackerRole.empty()) {
+			char buffer[vr::k_unMaxPropertyStringSize];
+			vr::ETrackedPropertyError pError = vr::TrackedProp_Success;
+			vr::VRSystem()->GetStringTrackedDeviceProperty(deviceInfos[index]->openvrId,
+				vr::Prop_ControllerType_String, buffer, vr::k_unMaxPropertyStringSize, &pError);
+			if (pError == vr::TrackedProp_Success) {
+				auto newRole = parseTrackerRole(std::string(buffer));
+				if (!newRole.empty()) {
+					deviceInfos[index]->trackerRole = newRole;
+					retval = true;
+				}
+			}
+		}
 	}
 	return retval;
+}
+
+int DeviceManipulationTabController::getDeviceHandedness(unsigned index) {
+	if (index >= deviceInfos.size()) return 0;
+	vr::ETrackedPropertyError pError = vr::TrackedProp_Success;
+	auto role = vr::VRSystem()->GetInt32TrackedDeviceProperty(
+		deviceInfos[index]->openvrId, vr::Prop_ControllerRoleHint_Int32, &pError);
+	if (pError == vr::TrackedProp_Success &&
+		(role == vr::TrackedControllerRole_LeftHand || role == vr::TrackedControllerRole_RightHand)) {
+		return role;
+	}
+	return 0;
 }
 
 void DeviceManipulationTabController::triggerHapticPulse(unsigned index) {
@@ -1237,9 +1298,6 @@ void DeviceManipulationTabController::setDeviceRenderModel(unsigned deviceIndex,
 				std::string texturePath = QApplication::applicationDirPath().toStdString() + "\\res\\transparent.png";
 				if (QFile::exists(QString::fromStdString(texturePath))) {
 					vr::VROverlay()->SetOverlayFromFile(overlayHandle, texturePath.c_str());
-					char buffer[vr::k_unMaxPropertyStringSize];
-					vr::VRRenderModels()->GetRenderModelName(renderModelIndex - 1, buffer, vr::k_unMaxPropertyStringSize);
-					vr::VROverlay()->SetOverlayRenderModel(overlayHandle, buffer, nullptr);
 					vr::HmdMatrix34_t trans = {
 						1.0f, 0.0f, 0.0f, 0.0f,
 						0.0f, 1.0f, 0.0f, 0.0f,
@@ -1253,6 +1311,160 @@ void DeviceManipulationTabController::setDeviceRenderModel(unsigned deviceIndex,
 			}
 		}
 	}
+}
+
+void DeviceManipulationTabController::reloadOffsetPresets() {
+	m_offsetPresets.clear();
+	auto settings = OverlayController::appSettings();
+	m_lastOffsetPresetName = settings->value("lastOffsetPresetName", "").toString().toStdString();
+	int count = settings->beginReadArray("offsetPresets");
+	for (int i = 0; i < count; i++) {
+		settings->setArrayIndex(i);
+		OffsetPreset preset;
+		preset.name = settings->value("name").toString().toStdString();
+		int entryCount = settings->beginReadArray("entries");
+		for (int j = 0; j < entryCount; j++) {
+			settings->setArrayIndex(j);
+			OffsetPresetEntry entry;
+			entry.serial = settings->value("serial").toString().toStdString();
+			entry.enabled = settings->value("enabled", false).toBool();
+			entry.x = settings->value("x", 0.0).toDouble();
+			entry.y = settings->value("y", 0.0).toDouble();
+			entry.z = settings->value("z", 0.0).toDouble();
+			preset.entries.push_back(entry);
+		}
+		settings->endArray();
+		m_offsetPresets.push_back(preset);
+	}
+	settings->endArray();
+}
+
+QString DeviceManipulationTabController::getLastOffsetPresetName() {
+	return QString::fromStdString(m_lastOffsetPresetName);
+}
+
+void DeviceManipulationTabController::saveOffsetPresets() {
+	auto settings = OverlayController::appSettings();
+	settings->beginWriteArray("offsetPresets");
+	for (int i = 0; i < (int)m_offsetPresets.size(); i++) {
+		settings->setArrayIndex(i);
+		auto& preset = m_offsetPresets[i];
+		settings->setValue("name", QString::fromStdString(preset.name));
+		settings->beginWriteArray("entries");
+		for (int j = 0; j < (int)preset.entries.size(); j++) {
+			settings->setArrayIndex(j);
+			auto& entry = preset.entries[j];
+			settings->setValue("serial", QString::fromStdString(entry.serial));
+			settings->setValue("enabled", entry.enabled);
+			settings->setValue("x", entry.x);
+			settings->setValue("y", entry.y);
+			settings->setValue("z", entry.z);
+		}
+		settings->endArray();
+	}
+	settings->endArray();
+	settings->sync();
+}
+
+unsigned DeviceManipulationTabController::getOffsetPresetCount() {
+	return (unsigned)m_offsetPresets.size();
+}
+
+QString DeviceManipulationTabController::getOffsetPresetName(unsigned index) {
+	if (index < m_offsetPresets.size()) {
+		return QString::fromStdString(m_offsetPresets[index].name);
+	}
+	return QString();
+}
+
+void DeviceManipulationTabController::saveOffsetPreset(QString name) {
+	std::string nameStr = name.toStdString();
+	OffsetPreset* preset = nullptr;
+	for (auto& p : m_offsetPresets) {
+		if (p.name == nameStr) {
+			preset = &p;
+			break;
+		}
+	}
+	if (!preset) {
+		m_offsetPresets.emplace_back();
+		preset = &m_offsetPresets.back();
+	}
+	preset->name = nameStr;
+	preset->entries.clear();
+	for (auto& info : deviceInfos) {
+		if (info->deviceClass == vr::TrackedDeviceClass_Controller || info->deviceClass == vr::TrackedDeviceClass_GenericTracker) {
+			OffsetPresetEntry entry;
+			entry.serial = info->serial;
+			entry.enabled = info->deviceOffsetsEnabled;
+			entry.x = info->deviceTranslationOffset.v[0];
+			entry.y = info->deviceTranslationOffset.v[1];
+			entry.z = info->deviceTranslationOffset.v[2];
+			preset->entries.push_back(entry);
+		}
+	}
+	m_lastOffsetPresetName = nameStr;
+	auto settings = OverlayController::appSettings();
+	settings->setValue("lastOffsetPresetName", QString::fromStdString(m_lastOffsetPresetName));
+	saveOffsetPresets();
+	emit offsetPresetsChanged();
+}
+
+void DeviceManipulationTabController::applyOffsetPreset(unsigned index) {
+	if (index >= m_offsetPresets.size()) return;
+	auto& preset = m_offsetPresets[index];
+	for (auto& entry : preset.entries) {
+		for (unsigned i = 0; i < (unsigned)deviceInfos.size(); i++) {
+			if (deviceInfos[i]->serial == entry.serial) {
+				setDriverTranslationOffset(i, entry.x, entry.y, entry.z, false);
+				enableDeviceOffsets(i, entry.enabled, false);
+				updateDeviceInfo(i);
+				emit deviceInfoChanged(i);
+				break;
+			}
+		}
+	}
+	m_lastOffsetPresetName = preset.name;
+	auto settings = OverlayController::appSettings();
+	settings->setValue("lastOffsetPresetName", QString::fromStdString(m_lastOffsetPresetName));
+	settings->sync();
+}
+
+bool DeviceManipulationTabController::getOffsetsPaused() {
+	return m_offsetsPaused;
+}
+
+void DeviceManipulationTabController::setOffsetsPaused(bool paused) {
+	if (paused == m_offsetsPaused) return;
+	m_offsetsPaused = paused;
+	if (paused) {
+		m_pausedDeviceSerials.clear();
+		for (unsigned i = 0; i < (unsigned)deviceInfos.size(); i++) {
+			if (deviceInfos[i]->deviceOffsetsEnabled) {
+				m_pausedDeviceSerials.push_back(deviceInfos[i]->serial);
+				enableDeviceOffsets(i, false, false);
+				emit deviceInfoChanged(i);
+			}
+		}
+	} else {
+		for (auto& serial : m_pausedDeviceSerials) {
+			for (unsigned i = 0; i < (unsigned)deviceInfos.size(); i++) {
+				if (deviceInfos[i]->serial == serial) {
+					enableDeviceOffsets(i, true, false);
+					emit deviceInfoChanged(i);
+					break;
+				}
+			}
+		}
+		m_pausedDeviceSerials.clear();
+	}
+}
+
+void DeviceManipulationTabController::deleteOffsetPreset(unsigned index) {
+	if (index >= m_offsetPresets.size()) return;
+	m_offsetPresets.erase(m_offsetPresets.begin() + index);
+	saveOffsetPresets();
+	emit offsetPresetsChanged();
 }
 
 } // namespace inputemulator

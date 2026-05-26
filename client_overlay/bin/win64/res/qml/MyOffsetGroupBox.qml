@@ -5,6 +5,11 @@ import QtQuick.Layouts 1.3
 GroupBox {
     property string boxTitle: "Offsets"
 
+    property bool showRotation: true
+    property string labelX: "X(左右)"
+    property string labelY: "Y(上下)"
+    property string labelZ: "Z(前後)"
+
     property double offsetYaw: 0.0
     property double offsetPitch: 0.0
     property double offsetRoll: 0.0
@@ -45,6 +50,7 @@ GroupBox {
 
     ColumnLayout {
         anchors.fill: parent
+        spacing: 0
 
         Rectangle {
             color: "#ffffff"
@@ -53,8 +59,11 @@ GroupBox {
             Layout.bottomMargin: 5
         }
 
+        // Rotation row — hidden when showRotation is false
         GridLayout {
+            visible: showRotation
             columns: 12
+            Layout.fillWidth: true
 
             MyText {
                 text: "Yaw:"
@@ -62,23 +71,19 @@ GroupBox {
                 horizontalAlignment: Text.AlignRight
                 Layout.rightMargin: 12
             }
-
             MyPushButton2 {
                 id: yawMinusButton
                 Layout.preferredWidth: 40
                 text: "-"
                 onClicked: {
                     var value = offsetYaw - offsetRotationStep
-                    if (value < -180.0) {
-                        value += 360.0
-                    }
+                    if (value < -180.0) value += 360.0
                     setRotationOffset(value, offsetPitch, offsetRoll)
                 }
             }
-
             MyTextField {
                 id: yawInputField
-                text: "0.00"
+                text: "0.0°"
                 Layout.preferredWidth: 140
                 Layout.leftMargin: 10
                 Layout.rightMargin: 10
@@ -86,27 +91,19 @@ GroupBox {
                 function onInputEvent(input) {
                     var val = parseFloat(input)
                     if (!isNaN(val)) {
-                        if (val < -180.0) {
-                            val = -180.0
-                        } else if (val > 180.0) {
-                            val = 180.0
-                        }
+                        if (val < -180.0) val = -180.0
+                        else if (val > 180.0) val = 180.0
                         setRotationOffset(val.toFixed(1), offsetPitch, offsetRoll)
-                    } else {
-                        getOffsets()
                     }
                 }
             }
-
             MyPushButton2 {
                 id: yawPlusButton
                 Layout.preferredWidth: 40
                 text: "+"
                 onClicked: {
                     var value = offsetYaw + offsetRotationStep
-                    if (value > 180.0) {
-                        value -= 360.0
-                    }
+                    if (value > 180.0) value -= 360.0
                     setRotationOffset(value, offsetPitch, offsetRoll)
                 }
             }
@@ -118,23 +115,19 @@ GroupBox {
                 Layout.leftMargin: 12
                 Layout.rightMargin: 12
             }
-
             MyPushButton2 {
                 id: pitchMinusButton
                 Layout.preferredWidth: 40
                 text: "-"
                 onClicked: {
                     var value = offsetPitch - offsetRotationStep
-                    if (value < -180.0) {
-                        value += 360.0
-                    }
+                    if (value < -180.0) value += 360.0
                     setRotationOffset(offsetYaw, value, offsetRoll)
                 }
             }
-
             MyTextField {
                 id: pitchInputField
-                text: "0.00"
+                text: "0.0°"
                 Layout.preferredWidth: 140
                 Layout.leftMargin: 10
                 Layout.rightMargin: 10
@@ -142,27 +135,19 @@ GroupBox {
                 function onInputEvent(input) {
                     var val = parseFloat(input)
                     if (!isNaN(val)) {
-                        if (val < -180.0) {
-                            val = -180.0
-                        } else if (val > 180.0) {
-                            val = 180.0
-                        }
+                        if (val < -180.0) val = -180.0
+                        else if (val > 180.0) val = 180.0
                         setRotationOffset(offsetYaw, val.toFixed(1), offsetRoll)
-                    } else {
-                        getOffsets()
                     }
                 }
             }
-
             MyPushButton2 {
                 id: pitchPlusButton
                 Layout.preferredWidth: 40
                 text: "+"
                 onClicked: {
                     var value = offsetPitch + offsetRotationStep
-                    if (value > 180.0) {
-                        value -= 360.0
-                    }
+                    if (value > 180.0) value -= 360.0
                     setRotationOffset(offsetYaw, value, offsetRoll)
                 }
             }
@@ -174,23 +159,19 @@ GroupBox {
                 Layout.leftMargin: 12
                 Layout.rightMargin: 12
             }
-
             MyPushButton2 {
                 id: rollMinusButton
                 Layout.preferredWidth: 40
                 text: "-"
                 onClicked: {
                     var value = offsetRoll - offsetRotationStep
-                    if (value < -180.0) {
-                        value += 360.0
-                    }
+                    if (value < -180.0) value += 360.0
                     setRotationOffset(offsetYaw, offsetPitch, value)
                 }
             }
-
             MyTextField {
                 id: rollInputField
-                text: "0.00"
+                text: "0.0°"
                 Layout.preferredWidth: 140
                 Layout.leftMargin: 10
                 Layout.rightMargin: 10
@@ -198,163 +179,122 @@ GroupBox {
                 function onInputEvent(input) {
                     var val = parseFloat(input)
                     if (!isNaN(val)) {
-                        if (val < -180.0) {
-                            val = -180.0
-                        } else if (val > 180.0) {
-                            val = 180.0
-                        }
+                        if (val < -180.0) val = -180.0
+                        else if (val > 180.0) val = 180.0
                         setRotationOffset(offsetYaw, offsetPitch, val.toFixed(1))
-                    } else {
-                        getOffsets()
                     }
                 }
             }
-
             MyPushButton2 {
                 id: rollPlusButton
                 Layout.preferredWidth: 40
                 text: "+"
                 onClicked: {
                     var value = offsetRoll + offsetRotationStep
-                    if (value > 180.0) {
-                        value -= 360.0
-                    }
+                    if (value > 180.0) value -= 360.0
                     setRotationOffset(offsetYaw, offsetPitch, value)
                 }
             }
+        }
+
+        // Translation row — always visible, labels configurable
+        GridLayout {
+            columns: 12
+            Layout.fillWidth: true
 
             MyText {
-                text: "X:"
+                text: labelX + ":"
                 horizontalAlignment: Text.AlignRight
                 Layout.preferredWidth: 80
                 Layout.rightMargin: 12
             }
-
             MyPushButton2 {
                 id: xMinusButton
                 Layout.preferredWidth: 40
                 text: "-"
-                onClicked: {
-                    var value = offsetX - offsetTranslationStep
-                    setTranslationOffset(value, offsetY, offsetZ)
-                }
+                onClicked: setTranslationOffset(offsetX - offsetTranslationStep, offsetY, offsetZ)
             }
-
             MyTextField {
                 id: xInputField
-                text: "0.00"
+                text: "0.0"
                 Layout.preferredWidth: 140
                 Layout.leftMargin: 10
                 Layout.rightMargin: 10
                 horizontalAlignment: Text.AlignHCenter
                 function onInputEvent(input) {
                     var val = parseFloat(input)
-                    if (!isNaN(val)) {
-                        setTranslationOffset(val.toFixed(1), offsetY, offsetZ)
-                    } else {
-                        getOffsets()
-                    }
+                    if (!isNaN(val)) setTranslationOffset(val.toFixed(1), offsetY, offsetZ)
                 }
             }
-
             MyPushButton2 {
                 id: xPlusButton
                 Layout.preferredWidth: 40
                 text: "+"
-                onClicked: {
-                    var value = offsetX + offsetTranslationStep
-                    setTranslationOffset(value, offsetY, offsetZ)
-                }
+                onClicked: setTranslationOffset(offsetX + offsetTranslationStep, offsetY, offsetZ)
             }
 
             MyText {
-                text: "Y:"
+                text: labelY + ":"
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignRight
                 Layout.leftMargin: 12
                 Layout.rightMargin: 12
             }
-
             MyPushButton2 {
                 id: yMinusButton
                 Layout.preferredWidth: 40
                 text: "-"
-                onClicked: {
-                    var value = offsetY - offsetTranslationStep
-                    setTranslationOffset(offsetX, value, offsetZ)
-                }
+                onClicked: setTranslationOffset(offsetX, offsetY - offsetTranslationStep, offsetZ)
             }
-
             MyTextField {
                 id: yInputField
-                text: "0.00"
+                text: "0.0"
                 Layout.preferredWidth: 140
                 Layout.leftMargin: 10
                 Layout.rightMargin: 10
                 horizontalAlignment: Text.AlignHCenter
                 function onInputEvent(input) {
                     var val = parseFloat(input)
-                    if (!isNaN(val)) {
-                        setTranslationOffset(offsetX, val.toFixed(1), offsetZ)
-                    } else {
-                        getOffsets()
-                    }
+                    if (!isNaN(val)) setTranslationOffset(offsetX, val.toFixed(1), offsetZ)
                 }
             }
-
             MyPushButton2 {
                 id: yPlusButton
                 Layout.preferredWidth: 40
                 text: "+"
-                onClicked: {
-                    var value = offsetY + offsetTranslationStep
-                    setTranslationOffset(offsetX, value, offsetZ)
-                }
+                onClicked: setTranslationOffset(offsetX, offsetY + offsetTranslationStep, offsetZ)
             }
 
             MyText {
-                text: "Z:"
+                text: labelZ + ":"
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignRight
                 Layout.leftMargin: 12
                 Layout.rightMargin: 12
             }
-
             MyPushButton2 {
                 id: zMinusButton
                 Layout.preferredWidth: 40
                 text: "-"
-                onClicked: {
-                    var value = offsetZ - offsetTranslationStep
-                    setTranslationOffset(offsetX, offsetY, value)
-                }
+                onClicked: setTranslationOffset(offsetX, offsetY, offsetZ - offsetTranslationStep)
             }
-
             MyTextField {
                 id: zInputField
-                text: "0.00"
+                text: "0.0"
                 Layout.preferredWidth: 140
                 Layout.leftMargin: 10
                 Layout.rightMargin: 10
                 horizontalAlignment: Text.AlignHCenter
                 function onInputEvent(input) {
                     var val = parseFloat(input)
-                    if (!isNaN(val)) {
-                        setTranslationOffset(offsetX, offsetY, val.toFixed(1))
-                    } else {
-                        getOffsets()
-                    }
+                    if (!isNaN(val)) setTranslationOffset(offsetX, offsetY, val.toFixed(1))
                 }
             }
-
             MyPushButton2 {
                 id: zPlusButton
                 Layout.preferredWidth: 40
                 text: "+"
-                onClicked: {
-                    var value = offsetZ + offsetTranslationStep
-                    setTranslationOffset(offsetX, offsetY, value)
-                }
+                onClicked: setTranslationOffset(offsetX, offsetY, offsetZ + offsetTranslationStep)
             }
         }
     }

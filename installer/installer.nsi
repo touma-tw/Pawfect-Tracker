@@ -10,8 +10,8 @@
 	!define DRIVER_BASEDIR "..\driver_vrinputemulator"
 
 	;Name and file
-	Name "OpenVR Input Emulator"
-	OutFile "OpenVR-InputEmulator.exe"
+	Name "Nikukyutto ~ Pawfect Tracker ~"
+	OutFile "PawfectTracker-ToumaPatched-v1.4.exe"
 	
 	;Default installation folder
 	InstallDir "$PROGRAMFILES64\OpenVR-InputEmulator"
@@ -36,6 +36,9 @@ VAR upgradeInstallation
 ;Pages
 
 	!insertmacro MUI_PAGE_LICENSE "..\LICENSE"
+	!define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\NOTICE.txt"
+    !define MUI_FINISHPAGE_SHOWREADME_TEXT "Show modifications notice"
+    !define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
 	!define MUI_PAGE_CUSTOMFUNCTION_PRE dirPre
 	!insertmacro MUI_PAGE_DIRECTORY
 	!insertmacro MUI_PAGE_INSTFILES
@@ -75,7 +78,7 @@ Function .onInit
  
 	
 	MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
-		"OpenVR Input Emulator is already installed. $\n$\nClick `OK` to upgrade the \
+		"PawfectTracker is already installed. $\n$\nClick `OK` to upgrade the \
 		existing installation or `Cancel` to cancel this upgrade." \
 		IDOK upgrade
 	Abort
@@ -104,13 +107,25 @@ Section "Install" SecInstall
 
 	;ADD YOUR OWN FILES HERE...
 	File "${OVERLAY_BASEDIR}\LICENSE"
+	File "${OVERLAY_BASEDIR}\NOTICE.txt"
 	File "${OVERLAY_BASEDIR}\*.exe"
 	File "${OVERLAY_BASEDIR}\*.dll"
 	File "${OVERLAY_BASEDIR}\*.bat"
 	File "${OVERLAY_BASEDIR}\*.vrmanifest"
 	File "${OVERLAY_BASEDIR}\*.conf"
 	File /r "${OVERLAY_BASEDIR}\res"
-	File /r "${OVERLAY_BASEDIR}\qtdata"
+	; Qt QML/plugin directories (windeployqt now deploys directly, no qtdata subfolder)
+	File /r "${OVERLAY_BASEDIR}\Qt"
+	;File /r "${OVERLAY_BASEDIR}\QtMultimedia"
+	;File /r "${OVERLAY_BASEDIR}\QtQml"
+	;File /r "${OVERLAY_BASEDIR}\QtQuick"
+	;File /r "${OVERLAY_BASEDIR}\QtQuick.2"
+	;File /r "${OVERLAY_BASEDIR}\audio"
+	;File /r "${OVERLAY_BASEDIR}\iconengines"
+	;File /r "${OVERLAY_BASEDIR}\imageformats"
+	;File /r "${OVERLAY_BASEDIR}\mediaservice"
+	;File /r "${OVERLAY_BASEDIR}\platforms"
+	;File /r "${OVERLAY_BASEDIR}\scenegraph"
 
 	; Install redistributable
 	ExecWait '"$INSTDIR\vcredist_x64.exe" /install /quiet'
@@ -145,7 +160,7 @@ Section "Install" SecInstall
   
 	;Create uninstaller
 	WriteUninstaller "$INSTDIR\Uninstall.exe"
-	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\OpenVRInputEmulator" "DisplayName" "OpenVR Input Emulator"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\OpenVRInputEmulator" "DisplayName" "Nikukyutto ~ Pawfect Tracker ~"
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\OpenVRInputEmulator" "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
 
 SectionEnd

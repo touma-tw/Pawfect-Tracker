@@ -151,7 +151,9 @@ int main(int argc, char *argv[]) {
 			auto initError = vr::VRInitError_None;
 			vr::VR_Init(&initError, vr::VRApplication_Utility);
 			if (initError == vr::VRInitError_None) {
-				std::cout << vr::VR_RuntimePath();
+				char runtimePathBuf[1024]; uint32_t runtimePathReq = 0;
+				vr::VR_GetRuntimePath(runtimePathBuf, sizeof(runtimePathBuf), &runtimePathReq);
+				std::cout << runtimePathBuf;
 			} else {
 				exitcode = -2;
 				std::cerr << std::string("Failed to initialize OpenVR: " + std::string(vr::VR_GetVRInitErrorAsEnglishDescription(initError))) << std::endl;
