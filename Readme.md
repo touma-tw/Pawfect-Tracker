@@ -14,6 +14,7 @@
 </div>
 
 ---
+you can download compiled installer from booth for free until 06/07
 
 <a name="english"></a>
 
