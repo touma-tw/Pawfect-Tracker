@@ -18,8 +18,7 @@
 
 ## English
 ### Pawfect Tracker
-
-A modernized and actively maintained full-body tracking utility for SteamVR and VRChat.
+Originally based on OpenVR-InputEmulator and actively maintained for modern SteamVR and VRChat environments.
 
 ### Overview
 Pawfect Tracker is an open-source VR tracking utility designed to improve full-body tracking workflows for SteamVR and VRChat users.
@@ -63,10 +62,15 @@ The long-term goals of this project are:
 - Reduce setup complexity
 - Continue adding features requested by users
 
-### Current Status
-This project is under active development and maintenance.
-
-Contributions, bug reports, feature requests, and community feedback are welcome.
+## Project Status
+✅ Actively Maintained
+Compatible with:
+- SteamVR (current versions)
+- Vive Tracker 1.0 / 2.0 / 3.0
+- VRChat FBT
+- Meta Quest2/3 + Space Calibrator setups
+- SteamFrame + Space Calibrator setups (future)
+- FluxPose (future)
 
 ### What this is
 A fork of OpenVR-InputEmulator with a new **HMD-relative tracker offset** system designed for VRChat full-body tracking calibration.
