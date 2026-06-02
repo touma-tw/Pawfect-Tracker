@@ -144,6 +144,18 @@ For mass-adjusting multiple trackers, click **Offsets QuickMenu** to see all tra
 
 The driver-side change is small: the third offset family is now interpreted in the HMD's yaw frame, baked into the tracker's local coordinate system at the moment of input. The other two offset families (`WorldFromDriver Offsets` and `DriverFromHead Offsets`) work as before. UI additions: Quick Menu, save/load preset, Pause Offsets, role-based device labels, 左右/上下/前後 axis labels.
 
+### Maintenance History
+The original project had seen limited maintenance for an extended period.
+Pawfect Tracker was created to continue development, restore compatibility with modern VR software, and ensure that users could continue relying on this tool as SteamVR and OpenVR evolved.
+Since taking over maintenance, development has focused on:
+* Updating dependencies
+* Modernizing OpenVR support
+* Resolving compatibility issues
+* Improving user experience
+* Addressing community feedback
+
+This project represents an ongoing commitment to keeping an important VR community tool alive and usable.
+
 ### License
 
 GNU General Public License v3.0. Same as the original OpenVR-InputEmulator. See `LICENSE` and `NOTICE.txt` for the full text and the list of modifications.
