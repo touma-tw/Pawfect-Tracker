@@ -96,7 +96,7 @@ This fork repurposes the existing third offset family (now called "DriverFromHMD
 
 - Windows 10 / 11 (64-bit)
 - SteamVR
-- A SteamVR-compatible HMD (tested with Meta Quest 3 streamed via PC Link)
+- A SteamVR-compatible HMD (tested with Meta Quest 3 streamed via Virtual Desktop to PC link)
 - Vive Trackers (1.0 / 2.0 / 3.0) on lighthouse base stations
 - If your HMD is not on lighthouse, install [OpenVR-SpaceCalibrator](https://github.com/pushrax/OpenVR-SpaceCalibrator) to align your HMD and tracker coordinate spaces.
 
