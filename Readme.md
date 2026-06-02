@@ -14,14 +14,61 @@
 </div>
 
 ---
-you can download compiled installer from booth for free until 06/07
-
 <a name="english"></a>
 
 ## English
+### Pawfect Tracker
+
+A modernized and actively maintained full-body tracking utility for SteamVR and VRChat.
+
+### Overview
+Pawfect Tracker is an open-source VR tracking utility designed to improve full-body tracking workflows for SteamVR and VRChat users.
+
+This project continues development of an older tracking solution that had become largely unmaintained. The goal of Pawfect Tracker is to preserve compatibility with modern VR ecosystems, improve usability, and provide features that the community actually needs in daily use.
+
+### Why This Project Exists
+Many VR tracking tools were created years ago and gradually stopped receiving updates as SteamVR, OpenVR, and related software evolved.
+
+As a result, users often encounter:
+- Compatibility issues with newer SteamVR versions
+- Outdated OpenVR integrations
+- Long-standing bugs that were never addressed
+- Missing quality-of-life features
+
+Pawfect Tracker aims to solve these problems by providing an actively maintained alternative that remains compatible with modern VR environments.
+
+### Key Improvements
+
+Compared to the original project, Pawfect Tracker includes:
+- Updated OpenVR integration
+- Compatibility improvements for modern SteamVR versions
+- Bug fixes for long-standing issues
+- Quality-of-life enhancements requested by users
+- Ongoing maintenance and support
+- Improved stability and usability
+
+### Target Users
+Pawfect Tracker is intended for:
+- VRChat users
+- Full-body tracking enthusiasts
+- SteamVR users
+- Experimental VR hardware setups
+- Developers working with OpenVR-based tracking systems
+
+### Project Goals
+The long-term goals of this project are:
+- Preserve a valuable community tool
+- Maintain compatibility with future SteamVR releases
+- Improve reliability for everyday use
+- Reduce setup complexity
+- Continue adding features requested by users
+
+### Current Status
+This project is under active development and maintenance.
+
+Contributions, bug reports, feature requests, and community feedback are welcome.
 
 ### What this is
-
 A fork of OpenVR-InputEmulator with a new **HMD-relative tracker offset** system designed for VRChat full-body tracking calibration.
 
 In the original tool, tracker offsets are specified in raw X / Y / Z driver-space axes. That works fine for developers, but for a player who just wants to move a foot tracker "10cm forward," it requires trial-and-error because X, Y, Z don't correspond to "forward" or "right" from the player's point of view.
