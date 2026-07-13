@@ -6,6 +6,7 @@
 #include <vrinputemulator_types.h>
 #include <ipc_protocol.h>
 #include <chrono>
+#include <cmath>
 
 // application namespace
 namespace inputemulator {
@@ -1107,15 +1108,91 @@ void DeviceManipulationTabController::setDriverRotationOffset(unsigned index, do
 	}
 }
 
+// Compute the vector (meters) that offsets the device by (xm, ym, zm) in the HMD's
+// yaw frame, expressed in the device's REPORTED (head-local) frame. Uses the FINAL
+// runtime poses from IVRSystem -- i.e. after Space Calibrator, recenter and any other
+// pose-modifying driver has run -- so it is immune to driver hook order.
+//   out = R_head^T * D, where R_head is the device's reported world orientation and
+//   D is the world-space displacement built from the HMD yaw.
+// The driver must rotate 'out' by the live qDriverFromHeadRotation before adding it to
+// vecDriverFromHeadTranslation (that vector is applied in the driver-point frame, which
+// differs from the reported head frame by exactly qDriverFromHeadRotation -- non-identity
+// for Vive trackers). Client owns R_head (SC + recenter), driver owns qDriverFromHead.
+bool DeviceManipulationTabController::computeHmdRelativeLocalOffset(uint32_t openvrId, double xm, double ym, double zm, vr::HmdVector3d_t& out) {
+	if (openvrId >= vr::k_unMaxTrackedDeviceCount) {
+		return false;
+	}
+	vr::TrackedDevicePose_t poses[vr::k_unMaxTrackedDeviceCount];
+	vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, 0.0f, poses, vr::k_unMaxTrackedDeviceCount);
+	const auto& hmdPose = poses[vr::k_unTrackedDeviceIndex_Hmd];
+	const auto& devPose = poses[openvrId];
+	if (!hmdPose.bPoseIsValid || !devPose.bPoseIsValid) {
+		return false;
+	}
+
+	// HMD forward in world space = -Z column of its rotation matrix; project onto
+	// the horizontal plane to get pure yaw (looking down must not tilt "forward").
+	const auto& hm = hmdPose.mDeviceToAbsoluteTracking.m;
+	double fx = -hm[0][2];
+	double fz = -hm[2][2];
+	double len = std::sqrt(fx * fx + fz * fz);
+	if (len < 1e-6) {
+		return false; // looking straight up/down -- yaw undefined
+	}
+	fx /= len;
+	fz /= len;
+	// Same yaw/sign conventions as the driver-side freeze had: qYaw rotates
+	// (0,0,-1) into (fx,0,fz); +X input = right, +Y = up, +Z = forward.
+	double yaw = std::atan2(fx, -fz);
+	double qw = std::cos(yaw * 0.5);
+	double qy = std::sin(yaw * 0.5);
+	double r_x = 1.0 - 2.0 * qy * qy;
+	double r_z = 2.0 * qy * qw;
+	double f_x = -2.0 * qy * qw;
+	double f_z = -(1.0 - 2.0 * qy * qy);
+
+	// +X input = right, +Y = up, +Z = forward, all in the HMD's yaw frame.
+	double ux = xm;
+	double uy = ym;
+	double uz = zm;
+
+	double dx = ux * r_x + uz * f_x;
+	double dy = uy;
+	double dz = ux * r_z + uz * f_z;
+
+	// World-space delta -> device local space via the transpose of the device's
+	// final world rotation. OpenVR rotates vecDriverFromHeadTranslation by exactly
+	// this rotation when reconstructing the pose, so the round trip is lossless
+	// no matter which components (SC etc.) contributed to it.
+	const auto& dm = devPose.mDeviceToAbsoluteTracking.m;
+	out.v[0] = dm[0][0] * dx + dm[1][0] * dy + dm[2][0] * dz;
+	out.v[1] = dm[0][1] * dx + dm[1][1] * dy + dm[2][1] * dz;
+	out.v[2] = dm[0][2] * dx + dm[1][2] * dy + dm[2][2] * dz;
+	return true;
+}
+
 void DeviceManipulationTabController::setDriverTranslationOffset(unsigned index, double x, double y, double z, bool notify) {
 	if (index < deviceInfos.size()) {
 		try {
-			parent->vrInputEmulator().setDriverTranslationOffset(deviceInfos[index]->openvrId, { x * 0.01, y * 0.01, z * 0.01 });
-			deviceInfos[index]->deviceTranslationOffset.v[0] = x;
-			deviceInfos[index]->deviceTranslationOffset.v[1] = y;
-			deviceInfos[index]->deviceTranslationOffset.v[2] = z;
+			auto& info = deviceInfos[index];
+			vr::HmdVector3d_t local = { 0.0, 0.0, 0.0 };
+			if (x != 0.0 || y != 0.0 || z != 0.0) {
+				if (!computeHmdRelativeLocalOffset(info->openvrId, x * 0.01, y * 0.01, z * 0.01, local)) {
+					LOG(WARNING) << "HMD-relative offset for " << info->serial << " deferred: HMD or device pose not valid";
+					return;
+				}
+			}
+			// 'local' is the requested displacement expressed in the device's reported
+			// (head-local) frame, derived from FINAL runtime poses so it already folds
+			// in Space Calibrator and the recenter transform. The driver rotates it by
+			// the live qDriverFromHeadRotation before adding to vecDriverFromHead, so we
+			// send it verbatim (meters) through the repurposed device translation offset.
+			parent->vrInputEmulator().setDriverTranslationOffset(info->openvrId, local);
+			info->deviceTranslationOffset.v[0] = x;
+			info->deviceTranslationOffset.v[1] = y;
+			info->deviceTranslationOffset.v[2] = z;
 		} catch (const std::exception& e) {
-			LOG(ERROR) << "Exception caught while setting WorldFromDriver translation offset: " << e.what();
+			LOG(ERROR) << "Exception caught while setting HMD-relative translation offset: " << e.what();
 		}
 		if (notify) {
 			updateDeviceInfo(index);
@@ -1331,6 +1408,9 @@ void DeviceManipulationTabController::reloadOffsetPresets() {
 			entry.x = settings->value("x", 0.0).toDouble();
 			entry.y = settings->value("y", 0.0).toDouble();
 			entry.z = settings->value("z", 0.0).toDouble();
+			entry.yaw = settings->value("yaw", 0.0).toDouble();
+			entry.pitch = settings->value("pitch", 0.0).toDouble();
+			entry.roll = settings->value("roll", 0.0).toDouble();
 			preset.entries.push_back(entry);
 		}
 		settings->endArray();
@@ -1359,6 +1439,9 @@ void DeviceManipulationTabController::saveOffsetPresets() {
 			settings->setValue("x", entry.x);
 			settings->setValue("y", entry.y);
 			settings->setValue("z", entry.z);
+			settings->setValue("yaw", entry.yaw);
+			settings->setValue("pitch", entry.pitch);
+			settings->setValue("roll", entry.roll);
 		}
 		settings->endArray();
 	}
@@ -1393,13 +1476,16 @@ void DeviceManipulationTabController::saveOffsetPreset(QString name) {
 	preset->name = nameStr;
 	preset->entries.clear();
 	for (auto& info : deviceInfos) {
-		if (info->deviceClass == vr::TrackedDeviceClass_Controller || info->deviceClass == vr::TrackedDeviceClass_GenericTracker) {
+		if (info->deviceClass == vr::TrackedDeviceClass_HMD || info->deviceClass == vr::TrackedDeviceClass_Controller || info->deviceClass == vr::TrackedDeviceClass_GenericTracker) {
 			OffsetPresetEntry entry;
 			entry.serial = info->serial;
 			entry.enabled = info->deviceOffsetsEnabled;
 			entry.x = info->deviceTranslationOffset.v[0];
 			entry.y = info->deviceTranslationOffset.v[1];
 			entry.z = info->deviceTranslationOffset.v[2];
+			entry.yaw = info->deviceRotationOffset.v[0];
+			entry.pitch = info->deviceRotationOffset.v[1];
+			entry.roll = info->deviceRotationOffset.v[2];
 			preset->entries.push_back(entry);
 		}
 	}
@@ -1417,6 +1503,7 @@ void DeviceManipulationTabController::applyOffsetPreset(unsigned index) {
 		for (unsigned i = 0; i < (unsigned)deviceInfos.size(); i++) {
 			if (deviceInfos[i]->serial == entry.serial) {
 				setDriverTranslationOffset(i, entry.x, entry.y, entry.z, false);
+				setDriverRotationOffset(i, entry.yaw, entry.pitch, entry.roll, false);
 				enableDeviceOffsets(i, entry.enabled, false);
 				updateDeviceInfo(i);
 				emit deviceInfoChanged(i);

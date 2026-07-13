@@ -135,7 +135,10 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)\$(ProjectName)\bin\$(Platform)\</OutDir>
+    <!-- Output straight to bin\win64 (not bin\x64) so the NSIS installer, which
+         packages from bin\win64, always picks up the freshly built driver. No
+         manual folder rename step. -->
+    <OutDir>$(SolutionDir)\$(ProjectName)\bin\win64\</OutDir>
     <IntDir>$(SolutionDir)build\$(ProjectName)\$(Configuration)\$(Platform)\</IntDir>
     <TargetName>driver_00vrinputemulator</TargetName>
   </PropertyGroup>

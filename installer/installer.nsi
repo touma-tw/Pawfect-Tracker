@@ -11,7 +11,7 @@
 
 	;Name and file
 	Name "Nikukyutto ~ Pawfect Tracker ~"
-	OutFile "PawfectTracker-ToumaPatched-v1.4.exe"
+	OutFile "PawfectTracker-ToumaPatched-v1.6.exe"
 	
 	;Default installation folder
 	InstallDir "$PROGRAMFILES64\OpenVR-InputEmulator"
@@ -146,7 +146,7 @@ Section "Install" SecInstall
 	File "${DRIVER_BASEDIR}\resources\sounds\audiocue.wav"
 	File "${DRIVER_BASEDIR}\resources\sounds\License.txt"
 	SetOutPath "$vrRuntimePath\drivers\00vrinputemulator\bin\win64"
-	File "${DRIVER_BASEDIR}\bin\x64\driver_00vrinputemulator.dll"
+	File "${DRIVER_BASEDIR}\bin\win64\driver_00vrinputemulator.dll"
 	
 	; Install the vrmanifest
 	nsExec::ExecToLog '"$INSTDIR\OpenVR-InputEmulatorOverlay.exe" -installmanifest'

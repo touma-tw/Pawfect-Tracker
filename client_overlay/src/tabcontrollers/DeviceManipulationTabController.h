@@ -34,6 +34,7 @@ struct OffsetPresetEntry {
 	std::string serial;
 	bool enabled = false;
 	double x = 0.0, y = 0.0, z = 0.0;
+	double yaw = 0.0, pitch = 0.0, roll = 0.0;
 };
 
 struct OffsetPreset {
@@ -107,6 +108,7 @@ private:
 	std::thread identifyThread;
 
 	void reloadOffsetPresets();
+	bool computeHmdRelativeLocalOffset(uint32_t openvrId, double xm, double ym, double zm, vr::HmdVector3d_t& out);
 	void saveOffsetPresets();
 
 public:

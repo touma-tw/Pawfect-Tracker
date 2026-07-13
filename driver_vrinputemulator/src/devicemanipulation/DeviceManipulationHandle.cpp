@@ -81,13 +81,7 @@ AnalogInputRemapping DeviceManipulationHandle::getAnalogInputRemapping(uint32_t 
 bool DeviceManipulationHandle::handlePoseUpdate(uint32_t& unWhichDevice, vr::DriverPose_t& newPose, uint32_t unPoseStructSize) {
 	std::lock_guard<std::recursive_mutex> lock(_mutex);
 
-	// If this is the HMD, refresh the world-yaw cache so tracker pose updates
-	// later in the same frame can use it. Done before mode-specific branches.
-	if (m_eDeviceClass == vr::TrackedDeviceClass_HMD) {
-		ServerDriver::getInstance()->cacheHmdWorldYaw(newPose);
-	}
-
-	// Cache the latest valid pose for use by RunFrame's HMD-relative freeze logic.
+	// Cache the latest valid pose (used by other device modes below).
 	if (newPose.poseIsValid && newPose.result == vr::TrackingResult_Running_OK) {
 		m_lastPose = newPose;
 		m_lastPoseValid = true;
@@ -145,20 +139,28 @@ bool DeviceManipulationHandle::handlePoseUpdate(uint32_t& unWhichDevice, vr::Dri
 			if (m_driverFromHeadTranslationOffset.v[0] != 0.0 || m_driverFromHeadTranslationOffset.v[1] != 0.0 || m_driverFromHeadTranslationOffset.v[2] != 0.0) {
 				VECTOR_ADD(newPose.vecDriverFromHeadTranslation, m_driverFromHeadTranslationOffset);
 			}
-			// HMD-relative offset is applied here too, via the precomputed frozen vector
-			// that was baked into this device's local-space at the moment the user set it.
-			if (m_frozenDriverFromHeadValid) {
-				VECTOR_ADD(newPose.vecDriverFromHeadTranslation, m_frozenDriverFromHeadAdd);
+			// HMD-relative offset. m_deviceTranslationOffset holds a HEAD-LOCAL delta
+			// (meters) precomputed by the client from FINAL runtime poses -- i.e. with
+			// the correct HMD yaw, already through Space Calibrator and the recenter
+			// transform that only the client can observe. Here we rotate it into this
+			// device's driver-point frame using the live qDriverFromHeadRotation (which
+			// only the driver can observe) and add it to vecDriverFromHeadTranslation.
+			// Because OpenVR reconstructs world pos as R(qWorldFromDriver*qRotation) *
+			// vecDriverFromHead, and R_head = R(qWorldFromDriver*qRotation)*R(qDriverFromHead),
+			// this yields exactly the requested world delta regardless of hook order.
+			if (m_deviceTranslationOffset.v[0] != 0.0 || m_deviceTranslationOffset.v[1] != 0.0 || m_deviceTranslationOffset.v[2] != 0.0) {
+				const auto& q = newPose.qDriverFromHeadRotation;
+				const auto& v = m_deviceTranslationOffset;
+				double tx = 2.0 * (q.y * v.v[2] - q.z * v.v[1]);
+				double ty = 2.0 * (q.z * v.v[0] - q.x * v.v[2]);
+				double tz = 2.0 * (q.x * v.v[1] - q.y * v.v[0]);
+				newPose.vecDriverFromHeadTranslation[0] += v.v[0] + q.w * tx + (q.y * tz - q.z * ty);
+				newPose.vecDriverFromHeadTranslation[1] += v.v[1] + q.w * ty + (q.z * tx - q.x * tz);
+				newPose.vecDriverFromHeadTranslation[2] += v.v[2] + q.w * tz + (q.x * ty - q.y * tx);
 			}
 			if (m_deviceRotationOffset.w != 1.0 || m_deviceRotationOffset.x != 0.0
 				|| m_deviceRotationOffset.y != 0.0 || m_deviceRotationOffset.z != 0.0) {
 				newPose.qRotation = m_deviceRotationOffset * newPose.qRotation;
-			}
-			if (m_deviceTranslationOffset.v[0] != 0.0 || m_deviceTranslationOffset.v[1] != 0.0 || m_deviceTranslationOffset.v[2] != 0.0) {
-				// NOTE: The "Driver Offsets" UI field is now repurposed as
-				// HMD-relative input. The actual effect is applied via
-				// m_frozenDriverFromHeadAdd in the DriverFromHead block below.
-				// Intentionally do NOT add to vecPosition here.
 			}
 		}
 		
@@ -523,125 +525,6 @@ void DeviceManipulationHandle::RunFrame() {
 		RunFrameDigitalBinding(r.second.remapping.doublePressBinding, (vr::EVRButtonId)r.first, r.second.bindings[2]);
 	}
 
-	// === HMD-relative "Driver Offsets" freeze ===
-	// Detect any change to the user input (m_deviceTranslationOffset). On change,
-	// recompute the local-space translation that, when added to
-	// vecDriverFromHeadTranslation, will offset the device by the requested amount
-	// in the HMD's yaw frame *at the instant of the change*.
-	//
-	// Strategy ("overwrite + clear"):
-	//   - If new input == last seen input -> nothing to do.
-	//   - If new input is all zero -> clear the frozen vector (snap back to origin).
-	//   - Else -> freeze using current HMD yaw, current device rotation,
-	//             current qWorldFromDriverRotation. From then on, the vector is
-	//             constant in the device's local space, so it tracks the device
-	//             rigidly through translation AND rotation, with no further HMD
-	//             influence.
-	{
-		// DEBUG LOG -- remove after verifying
-		static int debugFrameCounter = 0;
-		if (++debugFrameCounter % 90 == 0) {  // log once a second @ 90Hz
-			LOG(INFO) << "[HMDOffset] device=" << m_openvrId
-				<< " serial=" << m_serialNumber
-				<< " input=(" << m_deviceTranslationOffset.v[0]
-				<< "," << m_deviceTranslationOffset.v[1]
-				<< "," << m_deviceTranslationOffset.v[2] << ")"
-				<< " lastSeen=(" << m_lastSeenHmdRelativeInput.v[0]
-				<< "," << m_lastSeenHmdRelativeInput.v[1]
-				<< "," << m_lastSeenHmdRelativeInput.v[2] << ")"
-				<< " offsetsEnabled=" << m_offsetsEnabled
-				<< " frozenValid=" << m_frozenDriverFromHeadValid
-				<< " frozen=(" << m_frozenDriverFromHeadAdd.v[0]
-				<< "," << m_frozenDriverFromHeadAdd.v[1]
-				<< "," << m_frozenDriverFromHeadAdd.v[2] << ")"
-				<< " hmdYawValid=" << ServerDriver::getInstance()->isHmdWorldYawValid();
-		}
-
-		const auto& inp = m_deviceTranslationOffset;
-		bool changed =
-			inp.v[0] != m_lastSeenHmdRelativeInput.v[0] ||
-			inp.v[1] != m_lastSeenHmdRelativeInput.v[1] ||
-			inp.v[2] != m_lastSeenHmdRelativeInput.v[2];
-
-		if (changed) {
-			bool allZero = (inp.v[0] == 0.0 && inp.v[1] == 0.0 && inp.v[2] == 0.0);
-
-			if (allZero) {
-				m_frozenDriverFromHeadAdd = { 0.0, 0.0, 0.0 };
-				m_frozenDriverFromHeadValid = false;
-			} else {
-				auto serverDriver = ServerDriver::getInstance();
-				bool ok = false;
-
-				if (serverDriver && serverDriver->isHmdWorldYawValid() && m_lastPoseValid) {
-					vr::HmdQuaternion_t qYaw = serverDriver->getHmdWorldYaw();
-
-					// Step 1: HMD-frame input -> world-space delta.
-					double qw = qYaw.w;
-					double qy = qYaw.y;
-					double r_x = 1.0 - 2.0 * qy * qy;
-					double r_z = 2.0 * qy * qw;
-					double f_x = -2.0 * qy * qw;
-					double f_z = -(1.0 - 2.0 * qy * qy);
-
-					double ux = -inp.v[0]; // +X input = right (negate to match world convention)
-					double uy =  inp.v[1]; // +Y input = up (world)
-					double uz = -inp.v[2]; // +Z input = forward (negate to match world convention)
-
-					double dx_w = ux * r_x + uz * f_x;
-					double dy_w = uy;
-					double dz_w = ux * r_z + uz * f_z;
-
-					// Step 2: world -> this device's driver space, via
-					// inverse(qWorldFromDriverRotation). Read from the most recent
-					// pose we cached -- this is fine because RunFrame() is called
-					// soon after every pose update.
-					const auto& qWFD = m_lastPose.qWorldFromDriverRotation;
-					vr::HmdQuaternion_t qWFDInv = { qWFD.w, -qWFD.x, -qWFD.y, -qWFD.z };
-
-					auto qrotate = [](const vr::HmdQuaternion_t& q, double vx, double vy, double vz,
-					                  double& ox, double& oy, double& oz) {
-						double tx = 2.0 * (q.y * vz - q.z * vy);
-						double ty = 2.0 * (q.z * vx - q.x * vz);
-						double tz = 2.0 * (q.x * vy - q.y * vx);
-						ox = vx + q.w * tx + (q.y * tz - q.z * ty);
-						oy = vy + q.w * ty + (q.z * tx - q.x * tz);
-						oz = vz + q.w * tz + (q.x * ty - q.y * tx);
-					};
-
-					double dx_drv, dy_drv, dz_drv;
-					qrotate(qWFDInv, dx_w, dy_w, dz_w, dx_drv, dy_drv, dz_drv);
-
-					// Step 3: driver space -> this device's local (head) space,
-					// via inverse(qRotation). vecDriverFromHeadTranslation lives
-					// in local space and OpenVR will rotate it back by qRotation
-					// every frame, recreating exactly the driver-space delta we
-					// just computed -- but, crucially, that delta now lives in a
-					// frame that rotates *with* the device, which is what we want.
-					const auto& qRot = m_lastPose.qRotation;
-					vr::HmdQuaternion_t qRotInv = { qRot.w, -qRot.x, -qRot.y, -qRot.z };
-
-					double lx, ly, lz;
-					qrotate(qRotInv, dx_drv, dy_drv, dz_drv, lx, ly, lz);
-
-					m_frozenDriverFromHeadAdd.v[0] = lx;
-					m_frozenDriverFromHeadAdd.v[1] = ly;
-					m_frozenDriverFromHeadAdd.v[2] = lz;
-					m_frozenDriverFromHeadValid = true;
-					ok = true;
-				}
-
-				if (!ok) {
-					// HMD yaw not cached yet or no pose has arrived for this device.
-					// Defer: do NOT update m_lastSeenHmdRelativeInput so we'll retry
-					// next frame. Frozen vector stays at its previous state.
-					return;
-				}
-			}
-
-			m_lastSeenHmdRelativeInput = inp;
-		}
-	}
 }
 
 
