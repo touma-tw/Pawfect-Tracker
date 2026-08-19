@@ -11,7 +11,7 @@
 
 	;Name and file
 	Name "Nikukyutto ~ Pawfect Tracker ~"
-	OutFile "PawfectTracker-ToumaPatched-v1.6.exe"
+	OutFile "PawfectTracker-ToumaPatched-v1.6.1.exe"
 	
 	;Default installation folder
 	InstallDir "$PROGRAMFILES64\OpenVR-InputEmulator"
@@ -114,21 +114,31 @@ Section "Install" SecInstall
 	File "${OVERLAY_BASEDIR}\*.vrmanifest"
 	File "${OVERLAY_BASEDIR}\*.conf"
 	File /r "${OVERLAY_BASEDIR}\res"
-	; Qt QML/plugin directories (windeployqt now deploys directly, no qtdata subfolder)
+	; Qt plugin/QML directories (windeployqt deploys these next to the exe,
+	; no qtdata subfolder any more). "platforms" is mandatory - without it
+	; the overlay dies with "no Qt platform plugin could be initialized".
 	File /r "${OVERLAY_BASEDIR}\Qt"
-	;File /r "${OVERLAY_BASEDIR}\QtMultimedia"
-	;File /r "${OVERLAY_BASEDIR}\QtQml"
-	;File /r "${OVERLAY_BASEDIR}\QtQuick"
-	;File /r "${OVERLAY_BASEDIR}\QtQuick.2"
-	;File /r "${OVERLAY_BASEDIR}\audio"
-	;File /r "${OVERLAY_BASEDIR}\iconengines"
-	;File /r "${OVERLAY_BASEDIR}\imageformats"
-	;File /r "${OVERLAY_BASEDIR}\mediaservice"
-	;File /r "${OVERLAY_BASEDIR}\platforms"
-	;File /r "${OVERLAY_BASEDIR}\scenegraph"
+	File /r "${OVERLAY_BASEDIR}\QtGraphicalEffects"
+	File /r "${OVERLAY_BASEDIR}\QtMultimedia"
+	File /r "${OVERLAY_BASEDIR}\QtQml"
+	File /r "${OVERLAY_BASEDIR}\QtQuick"
+	File /r "${OVERLAY_BASEDIR}\QtQuick.2"
+	File /r "${OVERLAY_BASEDIR}\audio"
+	File /r "${OVERLAY_BASEDIR}\bearer"
+	File /r "${OVERLAY_BASEDIR}\iconengines"
+	File /r "${OVERLAY_BASEDIR}\imageformats"
+	File /r "${OVERLAY_BASEDIR}\mediaservice"
+	File /r "${OVERLAY_BASEDIR}\platforms"
+	File /r "${OVERLAY_BASEDIR}\playlistformats"
+	File /r "${OVERLAY_BASEDIR}\qmltooling"
+	File /r "${OVERLAY_BASEDIR}\scenegraph"
+	File /r "${OVERLAY_BASEDIR}\styles"
+	File /r "${OVERLAY_BASEDIR}\translations"
 
-	; Install redistributable
-	ExecWait '"$INSTDIR\vcredist_x64.exe" /install /quiet'
+	; Install redistributable (only if it was actually packaged - it is picked up
+	; by the "*.exe" line above, so it must sit in ${OVERLAY_BASEDIR})
+	IfFileExists "$INSTDIR\vcredist_x64.exe" 0 +2
+		ExecWait '"$INSTDIR\vcredist_x64.exe" /install /quiet'
 	
 	Var /GLOBAL vrRuntimePath
 	nsExec::ExecToStack '"$INSTDIR\OpenVR-InputEmulatorOverlay.exe" -openvrpath'
