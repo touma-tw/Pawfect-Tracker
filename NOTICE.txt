@@ -30,7 +30,7 @@ English
     Distribution:
       https://touma-vrc.booth.pm/
     Source:
-      https://github.com/touma-tw
+      https://github.com/touma-tw/Pawfect-Tracker
     License: GNU General Public License v3.0
 
   MODIFICATIONS FROM THE PARENT FORK:
@@ -72,6 +72,19 @@ English
 
     See LICENSE for the full text of the GNU GPL v3.
 
+  NAME AND LOGO (NOT COVERED BY THE GPL):
+    The name "にくきゅっと! ~ Pawfect Tracker ~" and all logo,
+    banner and illustration artwork of this fork (including
+    docs/banner.svg and docs/banner.png) are original works
+    of Touma-VRC and are NOT licensed under the GNU GPL.
+    Copyright (c) 2026 Touma-VRC. All rights reserved.
+
+    The GPL grants rights to the program code only. You may
+    redistribute or sell modified versions of the code under
+    the GPL, but you may not use this name, logo or artwork
+    for them, or present them as the original, without prior
+    written permission from Touma-VRC.
+
 
 ----------------------------------------------------------------
 日本語
@@ -97,7 +110,7 @@ English
     配布先:
       https://touma-vrc.booth.pm/
     ソース:
-      https://github.com/touma-tw
+      https://github.com/touma-tw/Pawfect-Tracker
     ライセンス: GNU General Public License v3.0
 
   親フォークからの変更点:
@@ -133,6 +146,20 @@ English
 
     GNU GPL v3 の全文は LICENSE ファイルをご覧ください。
 
+  名称およびロゴ (GPL の対象外):
+    「にくきゅっと! ~ Pawfect Tracker ~」という名称、ならびに
+    本フォークのロゴ・バナー・イラスト等のアートワーク
+    (docs/banner.svg、docs/banner.png を含む) は Touma-VRC の
+    オリジナル著作物であり、GNU GPL によるライセンスの対象では
+    ありません。
+    Copyright (c) 2026 Touma-VRC. All rights reserved.
+
+    GPL が許諾するのはプログラムのコードのみです。GPL の条件に
+    従ってコードを改変・再配布・販売することは可能ですが、
+    Touma-VRC の事前の書面による許可なく、本名称・ロゴ・
+    アートワークを使用すること、またそれを本家であるかのように
+    表示することはできません。
+
 
 ----------------------------------------------------------------
 GPL v3 SOURCE CODE OFFER / GPL v3 ソースコード提供のお知らせ
@@ -141,7 +168,7 @@ GPL v3 SOURCE CODE OFFER / GPL v3 ソースコード提供のお知らせ
   In compliance with GNU GPL v3, the complete corresponding
   source code for this software is available at:
 
-    https://github.com/touma-tw
+    https://github.com/touma-tw/Pawfect-Tracker
 
   GNU GPL v3 に従い、本ソフトウェアの完全な対応ソースコードは
   上記 URL にて公開されています。

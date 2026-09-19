@@ -164,6 +164,8 @@ This project represents an ongoing commitment to keeping an important VR communi
 
 GNU General Public License v3.0. Same as the original OpenVR-InputEmulator. See `LICENSE` and `NOTICE.txt` for the full text and the list of modifications.
 
+**The name and logo are not covered by the GPL.** The name "にくきゅっと! ~ Pawfect Tracker ~" and the logo / banner artwork (`docs/banner.*`) are original works of Touma-VRC, all rights reserved. You may redistribute or sell modified versions of the code under the GPL, but not under this name or logo, and not presented as the original. See `NOTICE.txt`.
+
 ### Credits
 
 - **Original work**: [OpenVR-InputEmulator](https://github.com/matzman666/OpenVR-InputEmulator) by matzman666
@@ -257,6 +259,8 @@ OpenVR-InputEmulator のフォークです。**HMD相対オフセット**機能�
 ### ライセンス
 
 GNU General Public License v3.0。オリジナル版と同じです。全文と変更点リストは `LICENSE` と `NOTICE.txt` をご覧ください。
+
+**名称およびロゴは GPL の対象外です。**「にくきゅっと! ~ Pawfect Tracker ~」という名称とロゴ・バナー等のアートワーク(`docs/banner.*`)は Touma-VRC のオリジナル著作物であり、All rights reserved です。GPL に従ってコードを改変・再配布・販売することは可能ですが、本名称・ロゴを使用すること、また本家であるかのように表示することはできません。詳細は `NOTICE.txt` をご覧ください。
 
 ### クレジット
 
