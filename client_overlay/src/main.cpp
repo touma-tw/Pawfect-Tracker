@@ -167,6 +167,19 @@ int main(int argc, char *argv[]) {
 			vr::VR_Init(&initError, vr::VRApplication_Utility);
 			if (initError == vr::VRInitError_None) {
 				vr::VRSettings()->SetBool(vr::k_pch_SteamVR_Section, vr::k_pch_SteamVR_ActivateMultipleDrivers_Bool, true);
+				// Make sure the driver add-on is on: it may have been switched off in
+				// "Manage Add-ons", or disabled by SteamVR safe mode after a crash. Without
+				// the driver the overlay has nothing to talk to and never shows up.
+				// Section name is "driver_" + the "name" in driver.vrdrivermanifest.
+				auto settingsError = vr::VRSettingsError_None;
+				vr::VRSettings()->SetBool("driver_00vrinputemulator", vr::k_pch_Driver_Enable_Bool, true, &settingsError);
+				if (settingsError == vr::VRSettingsError_None) {
+					vr::VRSettings()->SetBool("driver_00vrinputemulator", vr::k_pch_Driver_BlockedBySafemode_Bool, false, &settingsError);
+				}
+				if (settingsError != vr::VRSettingsError_None) {
+					exitcode = -1;
+					std::cerr << "Could not enable the driver add-on: " << vr::VRSettings()->GetSettingsErrorNameFromEnum(settingsError) << std::endl;
+				}
 			} else {
 				exitcode = -2;
 				std::cerr << std::string("Failed to initialize OpenVR: " + std::string(vr::VR_GetVRInitErrorAsEnglishDescription(initError))) << std::endl;

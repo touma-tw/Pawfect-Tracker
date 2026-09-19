@@ -11,7 +11,7 @@
 
 	;Name and file
 	Name "Nikukyutto ~ Pawfect Tracker ~"
-	OutFile "PawfectTracker-ToumaPatched-v1.6.2.exe"
+	OutFile "PawfectTracker-ToumaPatched-v1.6.3.exe"
 	
 	;Default installation folder
 	InstallDir "$PROGRAMFILES64\OpenVR-InputEmulator"
@@ -159,10 +159,15 @@ Section "Install" SecInstall
 	File "${DRIVER_BASEDIR}\bin\win64\driver_00vrinputemulator.dll"
 	
 	; Install the vrmanifest
+	; (also turns on "start with SteamVR" for the dashboard overlay)
 	nsExec::ExecToLog '"$INSTDIR\OpenVR-InputEmulatorOverlay.exe" -installmanifest'
-	
-	; Post-installation step
+	Pop $0
+	DetailPrint "Install manifest / auto-launch: exit code $0"
+
+	; Post-installation step (activateMultipleDrivers, enable the driver add-on)
 	nsExec::ExecToLog '"$INSTDIR\OpenVR-InputEmulatorOverlay.exe" -postinstallationstep'
+	Pop $0
+	DetailPrint "Enable driver add-on: exit code $0"
   
 	;Store installation folder
 	WriteRegStr HKLM "Software\OpenVR-InputEmulator\Overlay" "" $INSTDIR
