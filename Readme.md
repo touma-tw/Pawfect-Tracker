@@ -112,7 +112,7 @@ This fork repurposes the existing third offset family (now called "DriverFromHMD
 
 The installer switches both of the settings below on, but SteamVR can turn them off again later — most often through **safe mode** after a SteamVR crash, which disables all third-party add-ons at once. If you cannot find the overlay in the dashboard, check them by hand (menu names may differ slightly between SteamVR versions and languages):
 
-1. **Driver add-on:** SteamVR Settings → *Startup / Shutdown* → *Manage Add-ons*. Make sure **00vrinputemulator** is **On**. If SteamVR reports that it disabled add-ons (safe mode), turn it back on here as well.
+1. **Driver add-on:** SteamVR Settings → *Startup / Shutdown* → *Manage Add-Ons*. Make sure **00vrinputemulator** is **On**. If SteamVR reports that it disabled add-ons (safe mode), turn it back on here as well.
 2. **Startup overlay app:** SteamVR Settings → *Startup / Shutdown* → *Choose Startup Overlay Apps*. Make sure **VR Input Emulator** is **On**.
 3. **Restart SteamVR** after changing either setting.
 
@@ -228,10 +228,10 @@ OpenVR-InputEmulator のフォークです。**HMD相対オフセット**機能�
 
 #### SteamVR にオーバーレイが表示されない場合
 
-以下の 2 つの設定はインストーラが自動でオンにしますが、SteamVR 側で後からオフにされることがあります。特に多いのは、SteamVR がクラッシュした後の **セーフモード** で、サードパーティのアドオンがまとめて無効化されるケースです。ダッシュボードにオーバーレイが見当たらない場合は、手動で確認してください (メニュー名は SteamVR のバージョンや表示言語によって多少異なります)。
+以下の 2 つの設定はインストーラが自動でオンにしますが、SteamVR 側で後からオフにされることがあります。特に多いのは、SteamVR がクラッシュした後の **セーフモード** で、サードパーティのアドオンがまとめて無効化されるケースです。ダッシュボードにオーバーレイが見当たらない場合は、手動で確認してください (メニュー名は SteamVR のバージョンによって多少異なる場合があります)。
 
-1. **ドライバ (アドオン):** SteamVR の設定 → *Startup / Shutdown (起動/シャットダウン)* → *Manage Add-ons (アドオンの管理)* で、**00vrinputemulator** が **オン** になっているか確認してください。セーフモードでアドオンが無効化されたと表示された場合も、ここで再度オンにします。
-2. **起動時のオーバーレイアプリ:** SteamVR の設定 → *Startup / Shutdown (起動/シャットダウン)* → *Choose Startup Overlay Apps (起動時のオーバーレイアプリを選択)* で、**VR Input Emulator** が **オン** になっているか確認してください。
+1. **ドライバ (アドオン):** SteamVR の設定 → *起動 / 終了 (Startup / Shutdown)* → *アドオンを管理 (Manage Add-Ons)* で、**00vrinputemulator** が **オン** になっているか確認してください。セーフモードでアドオンが無効化されたと表示された場合も、ここで再度オンにします。
+2. **起動時のオーバーレイアプリ:** SteamVR の設定 → *起動 / 終了 (Startup / Shutdown)* → *起動時のオーバーレイアプリケーションを選択 (Choose Startup Overlay Apps)* で、**VR Input Emulator** が **オン** になっているか確認してください。
 3. 設定を変更した後は **SteamVR を再起動** してください。
 
 両方ともオンなのに表示されない場合は、SteamVR を完全に終了した状態でインストーラを再実行すると、すべて登録し直されます。
