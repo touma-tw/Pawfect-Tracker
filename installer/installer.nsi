@@ -11,7 +11,7 @@
 
 	;Name and file
 	Name "Nikukyutto ~ Pawfect Tracker ~"
-	OutFile "PawfectTracker-ToumaPatched-v1.6.1.exe"
+	OutFile "PawfectTracker-ToumaPatched-v1.6.2.exe"
 	
 	;Default installation folder
 	InstallDir "$PROGRAMFILES64\OpenVR-InputEmulator"

@@ -94,6 +94,23 @@ void DeviceManipulationTabController::initStage2(OverlayController * parent, QQu
 
 
 void DeviceManipulationTabController::eventLoopTick(vr::TrackedDevicePose_t* devicePoses) {
+	if (!m_pendingTranslationRefresh.empty()) {
+		std::vector<unsigned> due;
+		for (auto it = m_pendingTranslationRefresh.begin(); it != m_pendingTranslationRefresh.end();) {
+			if (--it->second <= 0) {
+				due.push_back(it->first);
+				it = m_pendingTranslationRefresh.erase(it);
+			} else {
+				++it;
+			}
+		}
+		for (auto i : due) {
+			if (i < deviceInfos.size()) {
+				auto t = deviceInfos[i]->deviceTranslationOffset;
+				setDriverTranslationOffset(i, t.v[0], t.v[1], t.v[2]);
+			}
+		}
+	}
 	if (settingsUpdateCounter >= 50) {
 		settingsUpdateCounter = 0;
 		if (parent->isDashboardVisible() || parent->isDesktopMode()) {
@@ -665,8 +682,15 @@ void DeviceManipulationTabController::applyDeviceManipulationProfile(unsigned in
 			setDriverFromHeadRotationOffset(deviceIndex, profile.driverFromHeadRotationOffset.v[0], profile.driverFromHeadRotationOffset.v[1], profile.driverFromHeadRotationOffset.v[2], false);
 			setDriverFromHeadTranslationOffset(deviceIndex, profile.driverFromHeadTranslationOffset.v[0], profile.driverFromHeadTranslationOffset.v[1], profile.driverFromHeadTranslationOffset.v[2], false);
 			setDriverRotationOffset(deviceIndex, profile.driverRotationOffset.v[0], profile.driverRotationOffset.v[1], profile.driverRotationOffset.v[2], false);
-			setDriverTranslationOffset(deviceIndex, profile.driverTranslationOffset.v[0], profile.driverTranslationOffset.v[1], profile.driverTranslationOffset.v[2], false);
 			enableDeviceOffsets(deviceIndex, profile.deviceOffsetsEnabled, false);
+			// Same as applyOffsetPreset: convert the translation only after the new rotation is live.
+			const auto& pt = profile.driverTranslationOffset;
+			if (pt.v[0] != 0.0 || pt.v[1] != 0.0 || pt.v[2] != 0.0) {
+				device->deviceTranslationOffset = pt;
+				scheduleTranslationRefresh(deviceIndex);
+			} else {
+				setDriverTranslationOffset(deviceIndex, 0.0, 0.0, 0.0, false);
+			}
 			updateDeviceInfo(deviceIndex);
 		}
 		if (profile.includesInputRemapping) {
@@ -1098,6 +1122,14 @@ void DeviceManipulationTabController::setDriverRotationOffset(unsigned index, do
 			deviceInfos[index]->deviceRotationOffset.v[0] = yaw;
 			deviceInfos[index]->deviceRotationOffset.v[1] = pitch;
 			deviceInfos[index]->deviceRotationOffset.v[2] = roll;
+			// The HMD-relative translation was converted to head-local space using the
+			// device's reported orientation, which includes this rotation offset. Changing
+			// the rotation invalidates that conversion, so re-send the translation once the
+			// new rotation shows up in the runtime poses.
+			const auto& t = deviceInfos[index]->deviceTranslationOffset;
+			if (t.v[0] != 0.0 || t.v[1] != 0.0 || t.v[2] != 0.0) {
+				scheduleTranslationRefresh(index);
+			}
 		} catch (const std::exception& e) {
 			LOG(ERROR) << "Exception caught while setting Driver rotation offset: " << e.what();
 		}
@@ -1173,12 +1205,24 @@ bool DeviceManipulationTabController::computeHmdRelativeLocalOffset(uint32_t ope
 
 void DeviceManipulationTabController::setDriverTranslationOffset(unsigned index, double x, double y, double z, bool notify) {
 	if (index < deviceInfos.size()) {
+		// An explicit value supersedes any refresh still waiting for this device.
+		m_pendingTranslationRefresh.erase(index);
 		try {
 			auto& info = deviceInfos[index];
 			vr::HmdVector3d_t local = { 0.0, 0.0, 0.0 };
 			if (x != 0.0 || y != 0.0 || z != 0.0) {
 				if (!computeHmdRelativeLocalOffset(info->openvrId, x * 0.01, y * 0.01, z * 0.01, local)) {
+					// Keep the requested value (UI, preset save) and retry until the poses
+					// are valid, e.g. a controller that is still asleep when a preset is applied.
 					LOG(WARNING) << "HMD-relative offset for " << info->serial << " deferred: HMD or device pose not valid";
+					info->deviceTranslationOffset.v[0] = x;
+					info->deviceTranslationOffset.v[1] = y;
+					info->deviceTranslationOffset.v[2] = z;
+					info->deviceTranslationLocalValid = false;
+					scheduleTranslationRefresh(index, 50);
+					if (notify) {
+						emit deviceInfoChanged(index);
+					}
 					return;
 				}
 			}
@@ -1191,6 +1235,8 @@ void DeviceManipulationTabController::setDriverTranslationOffset(unsigned index,
 			info->deviceTranslationOffset.v[0] = x;
 			info->deviceTranslationOffset.v[1] = y;
 			info->deviceTranslationOffset.v[2] = z;
+			info->deviceTranslationLocal = local;
+			info->deviceTranslationLocalValid = true;
 		} catch (const std::exception& e) {
 			LOG(ERROR) << "Exception caught while setting HMD-relative translation offset: " << e.what();
 		}
@@ -1199,6 +1245,35 @@ void DeviceManipulationTabController::setDriverTranslationOffset(unsigned index,
 			emit deviceInfoChanged(index);
 		}
 	}
+}
+
+// Re-send a head-local vector captured earlier (see OffsetPresetEntry::local) instead of
+// resolving (x, y, z) against the current poses. The HMD-relative direction depends on
+// how the device was held relative to the HMD; for a preset that must be the posture the
+// user tuned in (e.g. arm raised), not whatever posture they happen to be in at apply time.
+void DeviceManipulationTabController::restoreDriverTranslationLocal(unsigned index, double x, double y, double z, const vr::HmdVector3d_t& local) {
+	if (index < deviceInfos.size()) {
+		m_pendingTranslationRefresh.erase(index);
+		try {
+			auto& info = deviceInfos[index];
+			parent->vrInputEmulator().setDriverTranslationOffset(info->openvrId, local);
+			info->deviceTranslationOffset.v[0] = x;
+			info->deviceTranslationOffset.v[1] = y;
+			info->deviceTranslationOffset.v[2] = z;
+			info->deviceTranslationLocal = local;
+			info->deviceTranslationLocalValid = true;
+		} catch (const std::exception& e) {
+			LOG(ERROR) << "Exception caught while restoring HMD-relative translation offset: " << e.what();
+		}
+	}
+}
+
+// Re-send deviceTranslationOffset after 'ticks' event-loop ticks (20 ms each). Needed
+// whenever the rotation offset / enable state was just changed: those only reach
+// GetDeviceToAbsoluteTrackingPose after the driver's next pose update, and
+// computeHmdRelativeLocalOffset must see the final device orientation.
+void DeviceManipulationTabController::scheduleTranslationRefresh(unsigned index, int ticks) {
+	m_pendingTranslationRefresh[index] = ticks;
 }
 
 // 0 .. normal, 1 .. disable, 2 .. redirect mode, 3 .. swap mode, 4 ... motion compensation
@@ -1411,6 +1486,12 @@ void DeviceManipulationTabController::reloadOffsetPresets() {
 			entry.yaw = settings->value("yaw", 0.0).toDouble();
 			entry.pitch = settings->value("pitch", 0.0).toDouble();
 			entry.roll = settings->value("roll", 0.0).toDouble();
+			// Presets saved before v1.6.2 have no captured vector; those fall back to
+			// resolving x/y/z against the poses at apply time.
+			entry.hasLocal = settings->contains("lx");
+			entry.local.v[0] = settings->value("lx", 0.0).toDouble();
+			entry.local.v[1] = settings->value("ly", 0.0).toDouble();
+			entry.local.v[2] = settings->value("lz", 0.0).toDouble();
 			preset.entries.push_back(entry);
 		}
 		settings->endArray();
@@ -1442,6 +1523,15 @@ void DeviceManipulationTabController::saveOffsetPresets() {
 			settings->setValue("yaw", entry.yaw);
 			settings->setValue("pitch", entry.pitch);
 			settings->setValue("roll", entry.roll);
+			if (entry.hasLocal) {
+				settings->setValue("lx", entry.local.v[0]);
+				settings->setValue("ly", entry.local.v[1]);
+				settings->setValue("lz", entry.local.v[2]);
+			} else {
+				settings->remove("lx");
+				settings->remove("ly");
+				settings->remove("lz");
+			}
 		}
 		settings->endArray();
 	}
@@ -1486,6 +1576,8 @@ void DeviceManipulationTabController::saveOffsetPreset(QString name) {
 			entry.yaw = info->deviceRotationOffset.v[0];
 			entry.pitch = info->deviceRotationOffset.v[1];
 			entry.roll = info->deviceRotationOffset.v[2];
+			entry.hasLocal = info->deviceTranslationLocalValid;
+			entry.local = info->deviceTranslationLocal;
 			preset->entries.push_back(entry);
 		}
 	}
@@ -1502,9 +1594,23 @@ void DeviceManipulationTabController::applyOffsetPreset(unsigned index) {
 	for (auto& entry : preset.entries) {
 		for (unsigned i = 0; i < (unsigned)deviceInfos.size(); i++) {
 			if (deviceInfos[i]->serial == entry.serial) {
-				setDriverTranslationOffset(i, entry.x, entry.y, entry.z, false);
+				// Rotation and enable first: the translation is converted using the device's
+				// reported orientation, which must already include the preset's rotation.
 				setDriverRotationOffset(i, entry.yaw, entry.pitch, entry.roll, false);
 				enableDeviceOffsets(i, entry.enabled, false);
+				if (entry.hasLocal) {
+					// Restore the exact vector from tuning time; also cancels the refresh
+					// setDriverRotationOffset may just have scheduled.
+					restoreDriverTranslationLocal(i, entry.x, entry.y, entry.z, entry.local);
+				} else if (entry.x != 0.0 || entry.y != 0.0 || entry.z != 0.0) {
+					auto& t = deviceInfos[i]->deviceTranslationOffset;
+					t.v[0] = entry.x;
+					t.v[1] = entry.y;
+					t.v[2] = entry.z;
+					scheduleTranslationRefresh(i);
+				} else {
+					setDriverTranslationOffset(i, 0.0, 0.0, 0.0, false);
+				}
 				updateDeviceInfo(i);
 				emit deviceInfoChanged(i);
 				break;

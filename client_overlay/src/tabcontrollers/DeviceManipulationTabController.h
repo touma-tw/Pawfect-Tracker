@@ -35,6 +35,10 @@ struct OffsetPresetEntry {
 	bool enabled = false;
 	double x = 0.0, y = 0.0, z = 0.0;
 	double yaw = 0.0, pitch = 0.0, roll = 0.0;
+	// Head-local vector (meters) the translation resolved to while it was being tuned.
+	// Restored verbatim on apply so the result does not depend on the pose at apply time.
+	bool hasLocal = false;
+	vr::HmdVector3d_t local = { 0.0, 0.0, 0.0 };
 };
 
 struct OffsetPreset {
@@ -74,6 +78,9 @@ struct DeviceInfo {
 	vr::HmdVector3d_t driverFromHeadTranslationOffset;
 	vr::HmdVector3d_t deviceRotationOffset;
 	vr::HmdVector3d_t deviceTranslationOffset;
+	// What was last sent to the driver for deviceTranslationOffset (head-local, meters).
+	bool deviceTranslationLocalValid = false;
+	vr::HmdVector3d_t deviceTranslationLocal = { 0.0, 0.0, 0.0 };
 	uint32_t renderModelIndex = 0;
 	vr::VROverlayHandle_t renderModelOverlay = vr::k_ulOverlayHandleInvalid;
 	std::string renderModelOverlayName;
@@ -105,10 +112,16 @@ private:
 
 	unsigned settingsUpdateCounter = 0;
 
+	// Device index -> event-loop ticks until its HMD-relative translation is (re)sent.
+	// See scheduleTranslationRefresh().
+	std::map<unsigned, int> m_pendingTranslationRefresh;
+
 	std::thread identifyThread;
 
 	void reloadOffsetPresets();
 	bool computeHmdRelativeLocalOffset(uint32_t openvrId, double xm, double ym, double zm, vr::HmdVector3d_t& out);
+	void scheduleTranslationRefresh(unsigned index, int ticks = 10);
+	void restoreDriverTranslationLocal(unsigned index, double x, double y, double z, const vr::HmdVector3d_t& local);
 	void saveOffsetPresets();
 
 public:
